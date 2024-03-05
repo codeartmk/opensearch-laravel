@@ -124,6 +124,7 @@ User::opensearch()
             )
         ),
     ])
+    ->get();
 ```
 
 #### We currently support the following Query DSL queries:
