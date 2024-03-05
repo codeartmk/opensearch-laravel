@@ -54,10 +54,10 @@ class User extends Authenticatable implements OpenSearchable
         return [
             "mapping" => [
                 "properties" => [
-                    "id" => [ "type" => "integer" ]
+                    "id" => [ "type" => "integer" ],
                     "first_name" => [ "type" => "text" ],
                     "last_name" => [ "type" => "text" ],
-                    "name" => [ "type" => "text" ]
+                    "name" => [ "type" => "text" ],
                     "email" => [ "type" => "keyword" ],
                     //...
                 ]
@@ -74,7 +74,7 @@ class User extends Authenticatable implements OpenSearchable
             "name" => $this->first_name + " " + $this->last_name,
             "email" => $this->email,
             //...
-        ]
+        ];
     }
     
     public function openSearchIndexName(): string
