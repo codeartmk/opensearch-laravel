@@ -141,7 +141,7 @@ class OpenSearchDocuments
             ],
         ];
 
-        return $this->client->create($parameters);
+        return $this->client->update($parameters);
     }
 
     /**
