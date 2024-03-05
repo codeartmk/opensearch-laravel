@@ -1,0 +1,43 @@
+{
+    "name": "codeartmk/opensearch-laravel",
+    "description": "This package integrates the Opensearch client to work seamlessly with your Laravel Eloquent Model.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "opensearch-project/opensearch-php": "^2.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Codeart\\OpensearchLaravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Codeart\\OpensearchLaravel\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Codeart\\OpensearchLaravel\\OpenSearchServiceProvider"
+            ]
+        }
+    },
+    "authors": [
+        {
+            "name": "Ivan Janev",
+            "email": "ivan@codeart.mk"
+        },
+        {
+            "name": "Codeart",
+            "email": "contact@codeart.mk"
+        }
+    ],
+    "minimum-stability": "dev",
+    "version": "0.0.1",
+    "require-dev": {
+        "orchestra/testbench": "^8.0",
+        "phpunit/phpunit": "^10.5"
+    }
+}
