@@ -127,13 +127,62 @@ User::opensearch()
     ->get();
 ```
 
-#### We currently support the following Query DSL queries:
+## Supported Query DSL queries:
 
 ### Match
 
 [https://opensearch.org/docs/latest/query-dsl/full-text/match/](https://opensearch.org/docs/latest/query-dsl/full-text/match/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne::make('name', 'john doe');
+```
+
+### Exists
+
+[https://opensearch.org/docs/latest/query-dsl/term/exists/](https://opensearch.org/docs/latest/query-dsl/term/exists/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Exists::make('description');
+```
+
+### Fuzzy
+
+[https://opensearch.org/docs/latest/query-dsl/term/fuzzy/](https://opensearch.org/docs/latest/query-dsl/term/fuzzy/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Fuzzy::make('speaker', 'HALET');
+```
+
+### IDs
+
+[https://opensearch.org/docs/latest/query-dsl/term/ids/](https://opensearch.org/docs/latest/query-dsl/term/ids/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make([34229, 91296]);
+```
+
+### Prefix
+
+[https://opensearch.org/docs/latest/query-dsl/term/prefix/](https://opensearch.org/docs/latest/query-dsl/term/prefix/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Prefix::make('speaker', 'KING H');
+```
+
+### Range
+
+[https://opensearch.org/docs/latest/query-dsl/term/range/](https://opensearch.org/docs/latest/query-dsl/term/range/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Range::make('line_id', ['gte' => 10, 'lte' => 20]);
+```
+
+### Regexp
+
+[https://opensearch.org/docs/latest/query-dsl/term/regexp/](https://opensearch.org/docs/latest/query-dsl/term/regexp/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Regexp::make('play_name', '[a-zA-Z]amlet');
+```
+
+### Wildcard
+
+[https://opensearch.org/docs/latest/query-dsl/term/wildcard/](https://opensearch.org/docs/latest/query-dsl/term/wildcard/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Wildcard::make('speaker', 'H*Y');
 ```
 
 ### Match All
@@ -157,7 +206,56 @@ User::opensearch()
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Term::make('id', 1234);
 ```
 
-#### We currently support the following aggregation:
+## Supported Aggregations
+
+### Average
+
+[https://opensearch.org/docs/latest/aggregations/metric/average/](https://opensearch.org/docs/latest/aggregations/metric/average/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Average::make('taxful_total_price');
+```
+
+### Cardinality
+
+[https://opensearch.org/docs/latest/aggregations/metric/cardinality/](https://opensearch.org/docs/latest/aggregations/metric/cardinality/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Cardinality::make('products.product_id');
+```
+
+### Maximum
+
+[https://opensearch.org/docs/latest/aggregations/metric/maximum/](https://opensearch.org/docs/latest/aggregations/metric/maximum/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Maximum::make('taxful_total_price');
+```
+
+### Minimum
+
+[https://opensearch.org/docs/latest/aggregations/metric/minimum/](https://opensearch.org/docs/latest/aggregations/metric/minimum/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Minimum::make('taxful_total_price');
+```
+
+### Percentile
+
+[https://opensearch.org/docs/latest/aggregations/metric/percentile/](https://opensearch.org/docs/latest/aggregations/metric/percentile/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price');
+```
+
+### Stats
+
+[https://opensearch.org/docs/latest/aggregations/metric/stats/](https://opensearch.org/docs/latest/aggregations/metric/stats/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Stats::make('taxful_total_price');
+```
+
+### Sum
+
+[https://opensearch.org/docs/latest/aggregations/metric/sum/](https://opensearch.org/docs/latest/aggregations/metric/sum/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Sum::make('taxful_total_price');
+```
 
 ### Terms
 
@@ -225,7 +323,7 @@ User::opensearch()
     ->delete($id);
 ```
 
-#### Lazy Loading Relationship
+### Lazy Loading Relationship
 
 The methods `createAll`, `create`, and `createOrUpdate` all accept a function as a second parameter to allow you to lazy 
 load your relationship when creating documents.
@@ -237,6 +335,71 @@ User::opensearch()
     ->documents()
     ->create($ids, fn($query) => $query->with('relationship'));
 ```
+
+## Extending the functionality
+
+If we've missed a search query you need or an aggregation you need, you can easily implement your own
+and integrate it to work our core functionality.
+
+### Search Query
+
+Create a custom class and implement the `SearchQueryType` and `OpenSearchQuery` interfaces.
+If you were to implement the [Query String](https://opensearch.org/docs/latest/query-dsl/full-text/query-string/) query
+it would look like the following:
+```php
+use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Types\SearchQueryType;
+
+class MyCustomQuery implements OpenSearchQuery, SearchQueryType
+{
+    public function __construct(
+        private readonly string $query
+    ) {}
+    
+    public static function make(string $query) {
+        return self($query);
+    }
+
+    public function toOpenSearchQuery() : array{
+        return [
+            'query_string' => [
+                'query' => $query
+            ]  
+        ];
+    }
+}
+```
+
+and then just call it.
+```php
+use App\Models\User;
+use MyNamespace\MyCustomQuery;
+
+User::opensearch()
+    ->builder()
+    ->search([
+        Query::make([
+            MyCustomQuery::make('the wind AND (rises OR rising)')
+        ]),
+    ])
+    ->get();
+```
+
+### Aggregations
+
+You can achieve the same for aggregations but instead of `SearchQueryType` you need to implement the
+`AggregationType` inteface.
+
+```php
+use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
+use Codeart\OpensearchLaravel\Aggregations\Types\AggregationType;
+
+class MyCustomQuery implements OpenSearchQuery, AggregationType
+{
+    //aggregation logic
+}
+```
+
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
