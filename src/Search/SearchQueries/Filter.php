@@ -8,7 +8,7 @@ use Codeart\OpensearchLaravel\Search\SearchQueries\Types\SearchQueryType;
 class Filter implements OpenSearchQuery
 {
     public function __construct(
-        private SearchQueryType|array $queryType
+        private readonly SearchQueryType|array $queryType
     ){}
 
     public static function make(SearchQueryType|array $queryType): self

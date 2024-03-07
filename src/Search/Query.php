@@ -7,7 +7,7 @@ use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 class Query implements OpenSearchQuery
 {
     public function __construct(
-        private array $parameters
+        private readonly array $parameters
     ){}
 
     public static function make(array $parameters): self

@@ -8,7 +8,7 @@ use Codeart\OpensearchLaravel\Search\SearchQueries\Types\SearchQueryType;
 class MustNot implements OpenSearchQuery
 {
     public function __construct(
-        private SearchQueryType|BoolQuery|array $queryType
+        private readonly SearchQueryType|BoolQuery|array $queryType
     ){}
 
     public static function make(SearchQueryType|BoolQuery|array $queryType): self

@@ -4,23 +4,22 @@ namespace Codeart\OpensearchLaravel\Search\SearchQueries\Types;
 
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
-class Term implements SearchQueryType, OpenSearchQuery
+class Exists implements SearchQueryType, OpenSearchQuery
 {
     public function __construct(
         private readonly string $field,
-        private readonly string|bool|int $value
     ){}
 
-    public static function make(string $field, string|bool|int $value): self
+    public static function make(string $field): self
     {
-        return new self($field, $value);
+        return new self($field);
     }
 
     public function toOpenSearchQuery(): array
     {
         return [
-            'term' => [
-                $this->field => $this->value
+            'exists' => [
+                'field' => $this->field
             ]
         ];
     }

@@ -8,7 +8,7 @@ use Codeart\OpensearchLaravel\Search\SearchQueries\Types\Term;
 class BoolQuery implements OpenSearchQuery
 {
     public function __construct(
-        private array $parameters
+        private readonly array $parameters
     ){}
 
     public static function make(array $parameters): self
