@@ -8,23 +8,19 @@ class Range implements SearchQueryType, OpenSearchQuery
 {
     public function __construct(
         private readonly string $field,
-        private readonly string $value,
-        private readonly bool $caseInsensitive
+        private readonly array $ranges
     ){}
 
-    public static function make(string $field, string $value, bool $caseInsensitive = false): self
+    public static function make(string $field, array $ranges): self
     {
-        return new self($field, $value, $caseInsensitive);
+        return new self($field, $ranges);
     }
 
     public function toOpenSearchQuery(): array
     {
         return [
             'prefix' => [
-                $this->field => [
-                    'value' => $this->value,
-                    'case_insensitive' => $this->caseInsensitive
-                ]
+                $this->field => $this->ranges
             ]
         ];
     }

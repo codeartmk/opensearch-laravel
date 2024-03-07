@@ -10,7 +10,7 @@ class Ids implements SearchQueryType, OpenSearchQuery
         private readonly int|array $value,
     ){}
 
-    public static function make(string $value): self
+    public static function make(int|array $value): self
     {
         return new self($value);
     }
