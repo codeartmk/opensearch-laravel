@@ -394,7 +394,7 @@ You can achieve the same for aggregations but instead of `SearchQueryType` you n
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 use Codeart\OpensearchLaravel\Aggregations\Types\AggregationType;
 
-class MyCustomQuery implements OpenSearchQuery, AggregationType
+class MyCustomAggregation implements OpenSearchQuery, AggregationType
 {
     //aggregation logic
 }
