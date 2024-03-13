@@ -1,5 +1,8 @@
 # Build Opensearch Queries through Eloquent
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/codeartmk/opensearch-laravel.svg?style=flat-square)](https://packagist.org/packages/codeartmk/opensearch-laravel)
+[![Total Downloads](https://img.shields.io/packagist/dt/codeartmk/opensearch-laravel.svg?style=flat-square)](https://packagist.org/packages/codeartmk/opensearch-laravel)
+
 ## Overview
 
 This package integrates the Opensearch client to work seamlessly with your Laravel Eloquent Model.
