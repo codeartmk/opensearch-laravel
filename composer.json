@@ -34,7 +34,7 @@
             "email": "contact@codeart.mk"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "require-dev": {
         "orchestra/testbench": "^8.0",
         "phpunit/phpunit": "^10.5"

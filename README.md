@@ -2,8 +2,6 @@
 
 ## Overview
 
-**Note: This package is still in development and is not yet ready for production use**
-
 This package integrates the Opensearch client to work seamlessly with your Laravel Eloquent Model.
 
 ## Installation
@@ -271,7 +269,7 @@ User::opensearch()
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('company_id')
 ```
 
-We plan to support more before we make it production ready.
+We plan to support more in the feature.
 
 ## Working with indices and documents
 
@@ -400,6 +398,8 @@ class MyCustomAggregation implements OpenSearchQuery, AggregationType
 }
 ```
 
+## Contact Us
+[<img src="https://codeart.s3.amazonaws.com/banner.gif">](https://codeart.mk/track/github-opensearch-laravel/)
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
