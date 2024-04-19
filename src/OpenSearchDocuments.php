@@ -49,7 +49,7 @@ class OpenSearchDocuments
             $results = $this->client->bulk($bulk);
 
             if (isset($results['errors']) && $results['errors'] === true) {
-                throw new OpenSearchCreateException($this->indexName, $results['errors']);
+                throw new OpenSearchCreateException($this->indexName, $results);
             }
         });
 
@@ -106,8 +106,8 @@ class OpenSearchDocuments
 
             $results = $this->client->bulk($bulk);
 
-            if ($results['errors'] === true) {
-                throw new OpenSearchCreateException($this->indexName, $results['errors']);
+            if (isset($results['errors']) && $results['errors'] === true) {
+                throw new OpenSearchCreateException($this->indexName, $results);
             }
         }
 

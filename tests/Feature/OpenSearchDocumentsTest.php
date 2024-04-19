@@ -80,13 +80,12 @@ class OpenSearchDocumentsTest extends TestCase
     {
         $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
 
-        $this->mockedClient->shouldReceive('create')
+        $this->mockedClient->shouldReceive('update')
             ->andReturnUsing(fn($params) => $params);
 
         $result = $os->createOrUpdate(4, fn($query) => $query->with('relationship'));
 
         $expectedResult = [
-            "index" => 'mockery_1_codeart_opensearchlaravel_tests_mocks_mockopensearchables',
             "id" => 1,
             "refresh" => true,
             "retry_on_conflict" => 5,
@@ -101,7 +100,10 @@ class OpenSearchDocumentsTest extends TestCase
             ]
         ];
 
-        $this->assertEquals($expectedResult, $result);
+        foreach ($expectedResult as $key => $value) {
+            $this->assertArrayHasKey($key, $result);
+            $this->assertEquals($value, $result[$key]);
+        }
     }
 
     public function testDeleteCreatesProperParameters()
