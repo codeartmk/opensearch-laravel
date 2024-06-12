@@ -19,7 +19,7 @@ class Range implements SearchQueryType, OpenSearchQuery
     public function toOpenSearchQuery(): array
     {
         return [
-            'prefix' => [
+            'range' => [
                 $this->field => $this->ranges
             ]
         ];

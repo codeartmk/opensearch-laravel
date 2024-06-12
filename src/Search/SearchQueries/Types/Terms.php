@@ -7,24 +7,27 @@ use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 class Terms implements SearchQueryType, OpenSearchQuery
 {
     public function __construct(
-        private readonly int|array $value,
+        private readonly string $field,
+        private readonly string|int|array $values,
     ){}
 
-    public static function make(string $value): self
+    public static function make(string $field, string|int|array $values): self
     {
-        return new self($value);
+        return new self($field, $values);
     }
 
     public function toOpenSearchQuery(): array
     {
-        if(is_array($this->value)) {
-            $values = $this->value;
+        if(is_array($this->values)) {
+            $values = $this->values;
         } else {
-            $values = [$this->value];
+            $values = [$this->values];
         }
 
         return [
-            'values' =>  $values
+            'terms' =>  [
+                $this->field => $values
+            ]
         ];
     }
 }
