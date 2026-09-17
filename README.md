@@ -150,6 +150,9 @@ aggregations with the same name at the same level. Both exceptions implement
 `minimum_should_match` and `boost` keys. Anything else throws `InvalidSearchParametersException`.
 `minimum_should_match` is only sent when there is a `Should` clause, because without one it would match nothing.
 
+`Must`, `Should`, `MustNot` and `Filter` each take a query type, a `BoolQuery`, or a list of them. A list item that isn't a
+query throws `InvalidSearchParametersException`.
+
 ### Sub-aggregations
 
 The `aggregation` parameter accepts a single `Aggregation` or an array of them, so a bucket can hold several
