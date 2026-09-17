@@ -171,11 +171,50 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne::make('name', 'john doe');
 ```
 
+#### Match Bool Prefix
+
+[https://opensearch.org/docs/latest/query-dsl/full-text/match-bool-prefix/](https://opensearch.org/docs/latest/query-dsl/full-text/match-bool-prefix/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchBoolPrefix::make('title', 'the wind rises');
+```
+
+#### Match Phrase
+
+[https://opensearch.org/docs/latest/query-dsl/full-text/match-phrase/](https://opensearch.org/docs/latest/query-dsl/full-text/match-phrase/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchPhrase::make('title', 'the wind rises');
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchPhrase::make('title', 'wind rises the', slop: 3);
+```
+
 #### Match Phrase Prefix
 
 [https://opensearch.org/docs/latest/query-dsl/full-text/match-phrase-prefix/](https://opensearch.org/docs/latest/query-dsl/full-text/match-phrase-prefix/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchPhrasePrefix::make('title', 'the rise');
+```
+
+#### Multi Match
+
+[https://opensearch.org/docs/latest/query-dsl/full-text/multi-match/](https://opensearch.org/docs/latest/query-dsl/full-text/multi-match/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MultiMatch::make('wind', ['title^4', 'description']);
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MultiMatch::make('wind rises', ['title', 'description'], type: 'cross_fields', operator: 'and');
+```
+
+#### Query String
+
+[https://opensearch.org/docs/latest/query-dsl/full-text/query-string/](https://opensearch.org/docs/latest/query-dsl/full-text/query-string/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\QueryString::make('the wind AND (rises OR rising)');
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\QueryString::make('wind rises', fields: ['title', 'description'], defaultOperator: 'AND');
+```
+
+#### Simple Query String
+
+[https://opensearch.org/docs/latest/query-dsl/full-text/simple-query-string/](https://opensearch.org/docs/latest/query-dsl/full-text/simple-query-string/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\SimpleQueryString::make('"rises wind" | windy');
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\SimpleQueryString::make('wind rises', fields: ['title'], defaultOperator: 'AND');
 ```
 
 ### Term-level queries
@@ -412,27 +451,30 @@ and integrate it to work our core functionality.
 ### Search Query
 
 Create a custom class and implement the `SearchQueryType` and `OpenSearchQuery` interfaces.
-If you were to implement the [Query String](https://opensearch.org/docs/latest/query-dsl/full-text/query-string/) query
+If you were to implement the [Span term](https://opensearch.org/docs/latest/query-dsl/span/span-term/) query
 it would look like the following:
 ```php
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\SearchQueryType;
 
-class MyCustomQuery implements OpenSearchQuery, SearchQueryType
+class SpanTerm implements OpenSearchQuery, SearchQueryType
 {
     public function __construct(
-        private readonly string $query
+        private readonly string $field,
+        private readonly string $value
     ) {}
-    
-    public static function make(string $query) {
-        return self($query);
+
+    public static function make(string $field, string $value): self
+    {
+        return new self($field, $value);
     }
 
-    public function toOpenSearchQuery() : array{
+    public function toOpenSearchQuery(): array
+    {
         return [
-            'query_string' => [
-                'query' => $query
-            ]  
+            'span_term' => [
+                $this->field => $this->value
+            ]
         ];
     }
 }
@@ -441,13 +483,13 @@ class MyCustomQuery implements OpenSearchQuery, SearchQueryType
 and then just call it.
 ```php
 use App\Models\User;
-use MyNamespace\MyCustomQuery;
+use MyNamespace\SpanTerm;
 
 User::opensearch()
     ->builder()
     ->search([
         Query::make([
-            MyCustomQuery::make('the wind AND (rises OR rising)')
+            SpanTerm::make('title', 'wind')
         ]),
     ])
     ->get();
