@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bucket aggregations: `Composite` (with `after` paging), `MultiTerms` and `SignificantTerms`.
 - Pipeline aggregations: `BucketSelector`, `BucketScript`, `AvgBucket`, `SumBucket`, `MinBucket`, `MaxBucket`, `StatsBucket`, `CumulativeSum`, `Derivative` and `MovingFunction`.
 - Geographic and scripted aggregations: `GeoDistance`, `GeohashGrid`, `GeoBounds`, `GeoCentroid` and `ScriptedMetric`.
+- `OpenSearchBuilder` gained `from()`, `source()`, `highlight()` and `trackTotalHits()` for pagination, source filtering, highlighting and total hit counting. Requests that use none of them are unchanged.
 - The README now documents the existing `Terms` query and the `Range`, `DateRange` and `DateHistogram` aggregations, and groups the query and aggregation reference by category.
 
 ### Changed

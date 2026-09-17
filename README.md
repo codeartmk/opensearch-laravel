@@ -153,6 +153,31 @@ Aggregation::make(
 );
 ```
 
+### Pagination, source filtering, highlighting and total hits
+
+`size()` defaults to `10000`. The other options are only sent when you call them.
+
+```php
+use App\Models\User;
+
+User::opensearch()
+    ->builder()
+    ->search([
+        Query::make([MatchOne::make('bio', 'laravel')]),
+    ])
+    ->size(20)
+    ->from(40) // from + size can't exceed the index's max_result_window (10000 by default)
+    ->source(['name', 'email']) // or false, a single field, or ['includes' => [...], 'excludes' => [...]]
+    ->highlight(['bio', 'title' => ['fragment_size' => 50]], ['pre_tags' => ['<b>'], 'post_tags' => ['</b>']])
+    ->trackTotalHits() // true, false, or a number to count up to
+    ->get();
+```
+
+- [Paginate results](https://opensearch.org/docs/latest/search-plugins/searching-data/paginate/)
+- [Retrieve specific fields](https://opensearch.org/docs/latest/search-plugins/searching-data/retrieve-specific-fields/)
+- [Highlight query matches](https://opensearch.org/docs/latest/search-plugins/searching-data/highlight/)
+- [Search API (`track_total_hits`)](https://opensearch.org/docs/latest/api-reference/search-apis/search/)
+
 ## Supported Query DSL queries
 
 ### Match All
