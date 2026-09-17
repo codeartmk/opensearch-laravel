@@ -330,6 +330,22 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Nested::make('comments', Term::make('comments.author', 'ana'), scoreMode: 'max', innerHits: []);
 ```
 
+### Geographic queries
+
+#### Geo Bounding Box
+
+[https://opensearch.org/docs/latest/query-dsl/geo-and-xy/geo-bounding-box/](https://opensearch.org/docs/latest/query-dsl/geo-and-xy/geo-bounding-box/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\GeoBoundingBox::make('location', topLeft: ['lat' => 42.5, 'lon' => 20.5], bottomRight: ['lat' => 41.5, 'lon' => 21.5]);
+```
+
+#### Geo Distance
+
+[https://opensearch.org/docs/latest/query-dsl/geo-and-xy/geodistance/](https://opensearch.org/docs/latest/query-dsl/geo-and-xy/geodistance/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\GeoDistance::make('location', lat: 41.99, lon: 21.43, distance: '50km');
+```
+
 ## Supported Aggregations
 
 ### Metric aggregations

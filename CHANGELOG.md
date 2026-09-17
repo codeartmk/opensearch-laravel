@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Percentile::make()` accepts an optional `percents` list, `BucketSort::make()` an optional `order`, `size` and `from`, and `Terms::make()` an optional `order` and `minDocCount`. Existing calls produce the same query as before.
 - Full-text queries: `MatchPhrase`, `MultiMatch`, `MatchBoolPrefix`, `QueryString` and `SimpleQueryString`.
 - Compound and joining queries: `Nested`, `ConstantScore`, `DisMax`, `Boosting` and `FunctionScore`. They accept other query objects (including `BoolQuery`) wherever the DSL expects a query.
+- Geographic queries: `GeoDistance` and `GeoBoundingBox`.
 - The README now documents the existing `Terms` query and the `Range`, `DateRange` and `DateHistogram` aggregations, and groups the query and aggregation reference by category.
 
 ### Changed
