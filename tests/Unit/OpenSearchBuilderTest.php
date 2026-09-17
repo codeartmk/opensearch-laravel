@@ -93,6 +93,28 @@ class OpenSearchBuilderTest extends TestCase
         $this->assertSame(100, $parameters['body']['track_total_hits']);
     }
 
+    public function testGetThrowsWhenFromIsUsedWithoutSize()
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+        $this->expectExceptionMessage('Call size() when using from(). The default size of 10000 plus from() exceeds the default result window of 10000.');
+
+        $this->builder->from(10)->get();
+    }
+
+    public function testFromWorksWhenSizeIsCalledBeforeOrAfterIt()
+    {
+        $this->assertSame(10, $this->builder->from(10)->size(20)->get()['from']);
+        $this->assertSame(20, $this->builder->size(20)->from(20)->get()['from']);
+    }
+
+    public function testFromZeroDoesNotRequireSize()
+    {
+        $parameters = $this->builder->from(0)->get();
+
+        $this->assertSame(0, $parameters['from']);
+        $this->assertSame(10000, $parameters['size']);
+    }
+
     public function testSearchAcceptsAQueryAndASortInAnyOrder()
     {
         $parameters = $this->builder
