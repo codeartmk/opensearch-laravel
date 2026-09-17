@@ -2,6 +2,7 @@
 
 namespace Codeart\OpensearchLaravel\Tests\Feature;
 
+use Codeart\OpensearchLaravel\Exceptions\ModelException;
 use Codeart\OpensearchLaravel\Exceptions\OpenSearchCreateException;
 use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
 use Codeart\OpensearchLaravel\OpenSearchDocuments;
@@ -15,6 +16,11 @@ class OpenSearchDocumentsTest extends TestCase
     protected OpensearchClientFactory $clientFactory;
     protected Client $mockedClient;
     protected MockOpenSearchable $mockOpenSearchable;
+
+    /**
+     * What the mocked query returns from find(). Set it to null to simulate a missing model.
+     */
+    protected ?MockOpenSearchable $foundModel;
 
     public function setUp(): void
     {
@@ -47,9 +53,11 @@ class OpenSearchDocumentsTest extends TestCase
         $queryMock->shouldReceive('with')
             ->andReturnSelf();
         $queryMock->shouldReceive('find')
-            ->andReturn($this->mockOpenSearchable);
+            ->andReturnUsing(fn() => $this->foundModel);
 
         $this->mockOpenSearchable->shouldReceive('query')->andReturn($queryMock);
+
+        $this->foundModel = $this->mockOpenSearchable;
     }
 
     public function testCreateAllWillThrowOpenSearchCreateException()
@@ -104,6 +112,17 @@ class OpenSearchDocumentsTest extends TestCase
             $this->assertArrayHasKey($key, $result);
             $this->assertEquals($value, $result[$key]);
         }
+    }
+
+    public function testCreateOrUpdateThrowsWhenTheModelDoesNotExist()
+    {
+        $this->foundModel = null;
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+
+        $this->expectException(ModelException::class);
+
+        $os->createOrUpdate(404);
     }
 
     public function testDeleteCreatesProperParameters()
