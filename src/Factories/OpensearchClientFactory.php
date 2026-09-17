@@ -11,7 +11,7 @@ class OpensearchClientFactory
     {
         return (new ClientBuilder())
             ->setHosts([config('opensearch-laravel.host')])
-            ->setBasicAuthentication(config('opensearch-laravel.username'), config('opensearch-laravel.username'))
+            ->setBasicAuthentication(config('opensearch-laravel.username'), config('opensearch-laravel.password'))
             ->setSSLVerification(config('opensearch-laravel.ssl_verification'))
             ->build();
     }
