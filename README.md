@@ -7,6 +7,15 @@
 
 This package integrates the Opensearch client to work seamlessly with your Laravel Eloquent Model.
 
+## Requirements
+
+| Laravel | PHP |
+|---|---|
+| 10.x | 8.1 – 8.3 |
+| 11.x | 8.2 – 8.4 |
+| 12.x | 8.2 – 8.5 |
+| 13.x | 8.3 – 8.5 |
+
 ## Installation
 
 To install the Laravel OpenSearch Plugin, use Composer:
