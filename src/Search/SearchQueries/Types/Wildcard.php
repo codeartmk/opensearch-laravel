@@ -20,7 +20,7 @@ class Wildcard implements SearchQueryType, OpenSearchQuery
     public function toOpenSearchQuery(): array
     {
         return [
-            'wildcard   ' => [
+            'wildcard' => [
                 $this->field => [
                     'value' => $this->value,
                     'case_insensitive' => $this->caseInsensitive
