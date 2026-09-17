@@ -24,7 +24,7 @@ class Regexp implements SearchQueryType, OpenSearchQuery
     public function toOpenSearchQuery(): array
     {
         return [
-            'fuzzy' => [
+            'regexp' => [
                 $this->field => [
                     'value' => $this->value,
                     'case_insensitive' => $this->casInsensitive
