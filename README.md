@@ -143,6 +143,10 @@ throws `InvalidAggregationParametersException` for an empty list, an item that i
 aggregations with the same name at the same level. Both exceptions implement
 `Codeart\OpensearchLaravel\Exceptions\OpenSearchException`.
 
+`BoolQuery::make()` takes at most one each of `Must`, `Should`, `MustNot` and `Filter`, plus the optional
+`minimum_should_match` and `boost` keys. Anything else throws `InvalidSearchParametersException`.
+`minimum_should_match` is only sent when there is a `Should` clause, because without one it would match nothing.
+
 ### Sub-aggregations
 
 The `aggregation` parameter accepts a single `Aggregation` or an array of them, so a bucket can hold several
