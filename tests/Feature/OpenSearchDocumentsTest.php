@@ -133,7 +133,7 @@ class OpenSearchDocumentsTest extends TestCase
             ->andReturnUsing(fn($params) => $params);
 
         $expectedResults = [
-            "index" => "mockery_1_codeart_opensearchlaravel_tests_mocks_mockopensearchables",
+            "index" => $this->mockOpenSearchable->openSearchIndexName(),
             "id" => 1
         ];
 

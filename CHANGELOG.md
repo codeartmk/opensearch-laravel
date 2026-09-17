@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `composer.json` now declares its Laravel dependency (`illuminate/support` and `illuminate/database` `^10.0|^11.0|^12.0|^13.0`). The package always needed Laravel but never said so. Apps on Laravel 9 or older will stay on the previous release instead of installing this one.
 - The development dependencies now allow `orchestra/testbench` 8 through 11 and `phpunit/phpunit` 10.5 through 13, so the suite can run against every supported Laravel version.
 - `OpenSearchServiceProvider::register()` and `boot()` now declare a `void` return type. Only a class that extends the provider and overrides either method without `: void` is affected.
+- `Model::opensearch()` now resolves `OpensearchClientFactory` from the container, where it is registered as a singleton, so applications can swap the client in their tests. The factory builds the client once and reuses it instead of building a new one on every `opensearch()` call. After changing the connection config at runtime, call `forgetClient()` on the factory so the next call picks up the new config.
 
 ### Fixed
 

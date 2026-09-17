@@ -789,6 +789,48 @@ User::opensearch()
     ->create($ids, fn($query) => $query->with('relationship'));
 ```
 
+## The client
+
+The OpenSearch client is built from the `opensearch-laravel` config by `OpensearchClientFactory`, which is registered
+as a singleton in the container. The client is built on first use and reused for the rest of the request.
+
+If you change the connection config at runtime (for example, per tenant), drop the reused client so the next call
+builds one from the new config:
+
+```php
+use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
+
+config(['opensearch-laravel.host' => $tenant->opensearch_host]);
+
+app(OpensearchClientFactory::class)->forgetClient();
+```
+
+## Testing
+
+Because `Model::opensearch()` resolves `OpensearchClientFactory` from the container, you can swap the client in your
+application's tests instead of sending requests to a real cluster:
+
+```php
+use App\Models\User;
+use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
+use Mockery\MockInterface;
+use OpenSearch\Client;
+
+public function test_it_searches_users(): void
+{
+    $client = Mockery::mock(Client::class);
+    $client->shouldReceive('search')
+        ->once()
+        ->andReturn(['hits' => ['total' => ['value' => 0], 'hits' => []]]);
+
+    $this->mock(OpensearchClientFactory::class, function (MockInterface $factory) use ($client) {
+        $factory->shouldReceive('createClient')->andReturn($client);
+    });
+
+    // Code that calls User::opensearch() now uses the mocked client.
+}
+```
+
 ## Extending the functionality
 
 If we've missed a search query you need or an aggregation you need, you can easily implement your own

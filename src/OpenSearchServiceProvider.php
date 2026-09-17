@@ -2,6 +2,7 @@
 
 namespace Codeart\OpensearchLaravel;
 
+use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
 use Illuminate\Support\ServiceProvider;
 
 class OpenSearchServiceProvider extends ServiceProvider
@@ -9,6 +10,8 @@ class OpenSearchServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/opensearch-laravel.php', 'opensearch-laravel');
+
+        $this->app->singleton(OpensearchClientFactory::class);
     }
 
     public function boot(): void
