@@ -44,7 +44,7 @@ class DateHistogram implements OpenSearchQuery, AggregationType
         }
 
         if(!is_null($this->format)) {
-            $query['date_range']['format'] = $this->format;
+            $query['date_histogram']['format'] = $this->format;
         }
 
         return $query;
