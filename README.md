@@ -282,6 +282,54 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Wildcard::make('speaker', 'H*Y');
 ```
 
+### Compound queries
+
+#### Boosting
+
+[https://opensearch.org/docs/latest/query-dsl/compound/boosting/](https://opensearch.org/docs/latest/query-dsl/compound/boosting/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Boosting::make(positive: MatchOne::make('title', 'wind'), negative: Term::make('genre', 'horror'), negativeBoost: 0.2);
+```
+
+#### Constant Score
+
+[https://opensearch.org/docs/latest/query-dsl/compound/constant-score/](https://opensearch.org/docs/latest/query-dsl/compound/constant-score/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\ConstantScore::make(Term::make('genre', 'drama'), boost: 1.2);
+```
+
+#### Disjunction Max
+
+[https://opensearch.org/docs/latest/query-dsl/compound/disjunction-max/](https://opensearch.org/docs/latest/query-dsl/compound/disjunction-max/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\DisMax::make([MatchOne::make('title', 'wind'), MatchOne::make('description', 'wind')], tieBreaker: 0.7);
+```
+
+#### Function Score
+
+[https://opensearch.org/docs/latest/query-dsl/compound/function-score/](https://opensearch.org/docs/latest/query-dsl/compound/function-score/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\FunctionScore::make(
+    functions: [
+        ['filter' => Term::make('genre', 'drama'), 'weight' => 2],
+        ['field_value_factor' => ['field' => 'likes', 'modifier' => 'log1p']],
+    ],
+    query: MatchOne::make('title', 'wind'),
+    scoreMode: 'sum',
+    boostMode: 'multiply'
+);
+```
+
+### Joining queries
+
+#### Nested
+
+[https://opensearch.org/docs/latest/query-dsl/joining/nested/](https://opensearch.org/docs/latest/query-dsl/joining/nested/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Nested::make('comments', Term::make('comments.author', 'ana'));
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Nested::make('comments', Term::make('comments.author', 'ana'), scoreMode: 'max', innerHits: []);
+```
+
 ## Supported Aggregations
 
 ### Metric aggregations
