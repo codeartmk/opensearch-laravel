@@ -7,13 +7,19 @@ use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
 class Aggregation implements OpenSearchQuery
 {
+    /**
+     * @param Aggregation|Aggregation[]|null $aggregation
+     */
     public function __construct(
         private readonly string $name,
         private readonly AggregationType $aggregationType,
-        private readonly ?Aggregation $aggregation
+        private readonly Aggregation|array|null $aggregation
     ){}
 
-    public static function make(string $name, AggregationType $aggregationType, ?Aggregation $aggregation = null): self
+    /**
+     * @param Aggregation|Aggregation[]|null $aggregation
+     */
+    public static function make(string $name, AggregationType $aggregationType, Aggregation|array|null $aggregation = null): self
     {
         return new self($name, $aggregationType, $aggregation);
     }
@@ -23,7 +29,7 @@ class Aggregation implements OpenSearchQuery
         return [
             $this->name => [
                 ...$this->aggregationType->toOpenSearchQuery(),
-                ...(!is_null($this->aggregation) ? ["aggs" => $this->aggregation->toOpenSearchQuery()] : [])
+                ...(!empty($this->aggregation) ? (new AggregationBuilder($this->aggregation))->toOpenSearchQuery() : [])
             ]
         ];
     }

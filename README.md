@@ -137,6 +137,22 @@ User::opensearch()
     ->get();
 ```
 
+### Sub-aggregations
+
+The `aggregation` parameter accepts a single `Aggregation` or an array of them, so a bucket can hold several
+sibling sub-aggregations:
+
+```php
+Aggregation::make(
+    name: 'categories',
+    aggregationType: Terms::make('category'),
+    aggregation: [
+        Aggregation::make('average_price', Average::make('price')),
+        Aggregation::make('max_price', Maximum::make('price')),
+    ]
+);
+```
+
 ## Supported Query DSL queries:
 
 ### Match
