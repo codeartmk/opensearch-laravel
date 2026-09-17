@@ -267,6 +267,7 @@ Aggregation::make(
 [https://opensearch.org/docs/latest/aggregations/metric/percentile/](https://opensearch.org/docs/latest/aggregations/metric/percentile/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price', percents: [50, 95, 99]);
 ```
 
 ### Stats
@@ -288,13 +289,15 @@ Aggregation::make(
 [https://opensearch.org/docs/latest/aggregations/bucket/terms/](https://opensearch.org/docs/latest/aggregations/bucket/terms/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Terms::make('company.name', 100);
+\Codeart\OpensearchLaravel\Aggregations\Types\Terms::make('company.name', 100, order: ['_count' => 'asc'], minDocCount: 5);
 ```
 
 ### Bucket Sort
 
-[https://opensearch.org/docs/latest/aggregations/pipeline-agg/#bucket_sort](https://opensearch.org/docs/latest/aggregations/pipeline-agg/#bucket_sort)
+[https://opensearch.org/docs/latest/aggregations/pipeline/bucket-sort/](https://opensearch.org/docs/latest/aggregations/pipeline/bucket-sort/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('company_id')
+\Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('company_id');
+\Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('total_sales', order: 'desc', size: 5, from: 0);
 ```
 
 We plan to support more in the feature.
