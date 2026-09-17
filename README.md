@@ -581,12 +581,82 @@ Aggregation::make(
 
 ### Pipeline aggregations
 
+#### Average Bucket
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/avg-bucket/](https://opensearch.org/docs/latest/aggregations/pipeline/avg-bucket/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\AvgBucket::make('sales_per_month>sales');
+```
+
+#### Bucket Script
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/bucket-script/](https://opensearch.org/docs/latest/aggregations/pipeline/bucket-script/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\BucketScript::make(['sales' => 'total_sales', 'count' => '_count'], script: 'params.sales / params.count');
+```
+
+#### Bucket Selector
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/bucket-selector/](https://opensearch.org/docs/latest/aggregations/pipeline/bucket-selector/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\BucketSelector::make(['sales' => 'total_sales'], script: 'params.sales > 1000');
+```
+
 #### Bucket Sort
 
 [https://opensearch.org/docs/latest/aggregations/pipeline/bucket-sort/](https://opensearch.org/docs/latest/aggregations/pipeline/bucket-sort/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('company_id');
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('total_sales', order: 'desc', size: 5, from: 0);
+```
+
+#### Cumulative Sum
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/cumulative-sum/](https://opensearch.org/docs/latest/aggregations/pipeline/cumulative-sum/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\CumulativeSum::make('sales');
+```
+
+#### Derivative
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/derivative/](https://opensearch.org/docs/latest/aggregations/pipeline/derivative/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Derivative::make('sales', gapPolicy: 'skip');
+```
+
+#### Maximum Bucket
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/max-bucket/](https://opensearch.org/docs/latest/aggregations/pipeline/max-bucket/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\MaxBucket::make('sales_per_month>sales');
+```
+
+#### Minimum Bucket
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/min-bucket/](https://opensearch.org/docs/latest/aggregations/pipeline/min-bucket/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\MinBucket::make('sales_per_month>sales');
+```
+
+#### Moving Function
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/moving-function/](https://opensearch.org/docs/latest/aggregations/pipeline/moving-function/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\MovingFunction::make('sales', window: 3, script: 'MovingFunctions.unweightedAvg(values)');
+```
+
+#### Stats Bucket
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/stats-bucket/](https://opensearch.org/docs/latest/aggregations/pipeline/stats-bucket/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\StatsBucket::make('sales_per_month>sales');
+```
+
+#### Sum Bucket
+
+[https://opensearch.org/docs/latest/aggregations/pipeline/sum-bucket/](https://opensearch.org/docs/latest/aggregations/pipeline/sum-bucket/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\SumBucket::make('sales_per_month>sales');
 ```
 
 If something you need is missing, see [Extending the functionality](#extending-the-functionality).

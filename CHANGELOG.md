@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Metric aggregations: `ValueCount`, `ExtendedStats`, `TopHits`, `PercentileRanks` and `WeightedAvg`.
 - Bucket aggregations: `Histogram`, `Filter`, `Filters`, `Missing`, `Nested`, `ReverseNested` and `GlobalBucket` (the `global` aggregation; `global` is a reserved word in PHP).
 - Bucket aggregations: `Composite` (with `after` paging), `MultiTerms` and `SignificantTerms`.
+- Pipeline aggregations: `BucketSelector`, `BucketScript`, `AvgBucket`, `SumBucket`, `MinBucket`, `MaxBucket`, `StatsBucket`, `CumulativeSum`, `Derivative` and `MovingFunction`.
 - The README now documents the existing `Terms` query and the `Range`, `DateRange` and `DateHistogram` aggregations, and groups the query and aggregation reference by category.
 
 ### Changed
