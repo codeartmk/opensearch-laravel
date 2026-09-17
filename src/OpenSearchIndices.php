@@ -19,9 +19,9 @@ class OpenSearchIndices
     /**
      * Creates the index for the model
      *
-     * $configuration['numberOfShards']   = (int) The number of shards (default = 1)
-     * $configuration['numberOfReplicas'] = (int) The number of replicas (default = 1)
-     * $configuration['refreshInterval']  = (string) The refresh interval (default = 1s)
+     * $configuration['number_of_shards']   = (int) The number of shards (default = 1)
+     * $configuration['number_of_replicas'] = (int) The number of replicas (default = 1)
+     * $configuration['refresh_interval']   = (string) The refresh interval (default = 1s)
      *
      * @param array $configuration Associative array of parameters
      * @return array
