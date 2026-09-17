@@ -405,6 +405,20 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\ExtendedStats::make('taxful_total_price', sigma: 3);
 ```
 
+#### Geo Bounds
+
+[https://opensearch.org/docs/latest/aggregations/metric/geobounds/](https://opensearch.org/docs/latest/aggregations/metric/geobounds/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\GeoBounds::make('geoip.location');
+```
+
+#### Geo Centroid
+
+[https://opensearch.org/docs/latest/aggregations/metric/geocentroid/](https://opensearch.org/docs/latest/aggregations/metric/geocentroid/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\GeoCentroid::make('geoip.location');
+```
+
 #### Maximum
 
 [https://opensearch.org/docs/latest/aggregations/metric/maximum/](https://opensearch.org/docs/latest/aggregations/metric/maximum/)
@@ -432,6 +446,18 @@ Aggregation::make(
 [https://opensearch.org/docs/latest/aggregations/metric/percentile-ranks/](https://opensearch.org/docs/latest/aggregations/metric/percentile-ranks/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\PercentileRanks::make('taxful_total_price', values: [50, 100]);
+```
+
+#### Scripted Metric
+
+[https://opensearch.org/docs/latest/aggregations/metric/scripted-metric/](https://opensearch.org/docs/latest/aggregations/metric/scripted-metric/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\ScriptedMetric::make(
+    mapScript: "state.total += doc['taxful_total_price'].value",
+    combineScript: 'return state.total',
+    reduceScript: 'double sum = 0; for (t in states) { sum += t } return sum',
+    initScript: 'state.total = 0'
+);
 ```
 
 #### Stats
@@ -512,6 +538,20 @@ Aggregation::make(
 [https://opensearch.org/docs/latest/aggregations/bucket/filters/](https://opensearch.org/docs/latest/aggregations/bucket/filters/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Filters::make(['eur' => Term::make('currency', 'EUR'), 'usd' => Term::make('currency', 'USD')], otherBucketKey: 'other');
+```
+
+#### Geo Distance
+
+[https://opensearch.org/docs/latest/aggregations/bucket/geo-distance/](https://opensearch.org/docs/latest/aggregations/bucket/geo-distance/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\GeoDistance::make('geoip.location', lat: 41.99, lon: 21.43, ranges: [['to' => 100], ['from' => 100, 'to' => 500]], unit: 'km');
+```
+
+#### Geohash Grid
+
+[https://opensearch.org/docs/latest/aggregations/bucket/geohash-grid/](https://opensearch.org/docs/latest/aggregations/bucket/geohash-grid/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\GeohashGrid::make('geoip.location', precision: 4);
 ```
 
 #### Global
