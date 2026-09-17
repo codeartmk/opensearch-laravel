@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full-text queries: `MatchPhrase`, `MultiMatch`, `MatchBoolPrefix`, `QueryString` and `SimpleQueryString`.
 - Compound and joining queries: `Nested`, `ConstantScore`, `DisMax`, `Boosting` and `FunctionScore`. They accept other query objects (including `BoolQuery`) wherever the DSL expects a query.
 - Geographic queries: `GeoDistance` and `GeoBoundingBox`.
+- Specialized and term-level queries: `MoreLikeThis`, `Script`, `TermsSet` and `Knn` (requires the OpenSearch k-NN plugin).
 - The README now documents the existing `Terms` query and the `Range`, `DateRange` and `DateHistogram` aggregations, and groups the query and aggregation reference by category.
 
 ### Changed

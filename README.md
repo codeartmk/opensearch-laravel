@@ -275,6 +275,14 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Terms::make('line_id', [61809, 61810]);
 ```
 
+#### Terms Set
+
+[https://opensearch.org/docs/latest/query-dsl/term/terms-set/](https://opensearch.org/docs/latest/query-dsl/term/terms-set/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\TermsSet::make('classes', ['CS101', 'CS102', 'MATH101'], minimumShouldMatchField: 'min_required');
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\TermsSet::make('classes', ['CS101', 'CS102'], minimumShouldMatchScript: 'Math.min(params.num_terms, 2)');
+```
+
 #### Wildcard
 
 [https://opensearch.org/docs/latest/query-dsl/term/wildcard/](https://opensearch.org/docs/latest/query-dsl/term/wildcard/)
@@ -344,6 +352,31 @@ Aggregation::make(
 [https://opensearch.org/docs/latest/query-dsl/geo-and-xy/geodistance/](https://opensearch.org/docs/latest/query-dsl/geo-and-xy/geodistance/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\GeoDistance::make('location', lat: 41.99, lon: 21.43, distance: '50km');
+```
+
+### Specialized queries
+
+#### k-NN
+
+[https://opensearch.org/docs/latest/query-dsl/specialized/k-nn/index/](https://opensearch.org/docs/latest/query-dsl/specialized/k-nn/index/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Knn::make('embedding', vector: [0.12, 0.45, 0.91], k: 10);
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Knn::make('embedding', vector: [0.12, 0.45, 0.91], k: 10, filter: Term::make('genre', 'drama'));
+```
+
+#### More Like This
+
+[https://opensearch.org/docs/latest/query-dsl/specialized/more-like-this/](https://opensearch.org/docs/latest/query-dsl/specialized/more-like-this/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MoreLikeThis::make(['title', 'description'], like: 'the wind rises', minTermFreq: 1, maxQueryTerms: 12);
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MoreLikeThis::make(['title'], like: [['_index' => 'movies', '_id' => '1']]);
+```
+
+#### Script
+
+[https://opensearch.org/docs/latest/query-dsl/specialized/script/](https://opensearch.org/docs/latest/query-dsl/specialized/script/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Script::make("doc['likes'].value > params.min", params: ['min' => 100]);
 ```
 
 ## Supported Aggregations
