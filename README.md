@@ -153,63 +153,7 @@ Aggregation::make(
 );
 ```
 
-## Supported Query DSL queries:
-
-### Match
-
-[https://opensearch.org/docs/latest/query-dsl/full-text/match/](https://opensearch.org/docs/latest/query-dsl/full-text/match/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne::make('name', 'john doe');
-```
-
-### Exists
-
-[https://opensearch.org/docs/latest/query-dsl/term/exists/](https://opensearch.org/docs/latest/query-dsl/term/exists/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Exists::make('description');
-```
-
-### Fuzzy
-
-[https://opensearch.org/docs/latest/query-dsl/term/fuzzy/](https://opensearch.org/docs/latest/query-dsl/term/fuzzy/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Fuzzy::make('speaker', 'HALET');
-```
-
-### IDs
-
-[https://opensearch.org/docs/latest/query-dsl/term/ids/](https://opensearch.org/docs/latest/query-dsl/term/ids/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make([34229, 91296]);
-```
-
-### Prefix
-
-[https://opensearch.org/docs/latest/query-dsl/term/prefix/](https://opensearch.org/docs/latest/query-dsl/term/prefix/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Prefix::make('speaker', 'KING H');
-```
-
-### Range
-
-[https://opensearch.org/docs/latest/query-dsl/term/range/](https://opensearch.org/docs/latest/query-dsl/term/range/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Range::make('line_id', ['gte' => 10, 'lte' => 20]);
-```
-
-### Regexp
-
-[https://opensearch.org/docs/latest/query-dsl/term/regexp/](https://opensearch.org/docs/latest/query-dsl/term/regexp/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Regexp::make('play_name', '[a-zA-Z]amlet');
-```
-
-### Wildcard
-
-[https://opensearch.org/docs/latest/query-dsl/term/wildcard/](https://opensearch.org/docs/latest/query-dsl/term/wildcard/)
-```php
-\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Wildcard::make('speaker', 'H*Y');
-```
+## Supported Query DSL queries
 
 ### Match All
 
@@ -218,51 +162,120 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchAll::make();
 ```
 
-### Match Phrase Prefix
+### Full-text queries
+
+#### Match
+
+[https://opensearch.org/docs/latest/query-dsl/full-text/match/](https://opensearch.org/docs/latest/query-dsl/full-text/match/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne::make('name', 'john doe');
+```
+
+#### Match Phrase Prefix
 
 [https://opensearch.org/docs/latest/query-dsl/full-text/match-phrase-prefix/](https://opensearch.org/docs/latest/query-dsl/full-text/match-phrase-prefix/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchPhrasePrefix::make('title', 'the rise');
 ```
 
-### Term
+### Term-level queries
+
+#### Exists
+
+[https://opensearch.org/docs/latest/query-dsl/term/exists/](https://opensearch.org/docs/latest/query-dsl/term/exists/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Exists::make('description');
+```
+
+#### Fuzzy
+
+[https://opensearch.org/docs/latest/query-dsl/term/fuzzy/](https://opensearch.org/docs/latest/query-dsl/term/fuzzy/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Fuzzy::make('speaker', 'HALET');
+```
+
+#### IDs
+
+[https://opensearch.org/docs/latest/query-dsl/term/ids/](https://opensearch.org/docs/latest/query-dsl/term/ids/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make([34229, 91296]);
+```
+
+#### Prefix
+
+[https://opensearch.org/docs/latest/query-dsl/term/prefix/](https://opensearch.org/docs/latest/query-dsl/term/prefix/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Prefix::make('speaker', 'KING H');
+```
+
+#### Range
+
+[https://opensearch.org/docs/latest/query-dsl/term/range/](https://opensearch.org/docs/latest/query-dsl/term/range/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Range::make('line_id', ['gte' => 10, 'lte' => 20]);
+```
+
+#### Regexp
+
+[https://opensearch.org/docs/latest/query-dsl/term/regexp/](https://opensearch.org/docs/latest/query-dsl/term/regexp/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Regexp::make('play_name', '[a-zA-Z]amlet');
+```
+
+#### Term
 
 [https://opensearch.org/docs/latest/query-dsl/term/term/](https://opensearch.org/docs/latest/query-dsl/term/term/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Term::make('id', 1234);
 ```
 
+#### Terms
+
+[https://opensearch.org/docs/latest/query-dsl/term/terms/](https://opensearch.org/docs/latest/query-dsl/term/terms/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Terms::make('line_id', [61809, 61810]);
+```
+
+#### Wildcard
+
+[https://opensearch.org/docs/latest/query-dsl/term/wildcard/](https://opensearch.org/docs/latest/query-dsl/term/wildcard/)
+```php
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Wildcard::make('speaker', 'H*Y');
+```
+
 ## Supported Aggregations
 
-### Average
+### Metric aggregations
+
+#### Average
 
 [https://opensearch.org/docs/latest/aggregations/metric/average/](https://opensearch.org/docs/latest/aggregations/metric/average/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Average::make('taxful_total_price');
 ```
 
-### Cardinality
+#### Cardinality
 
 [https://opensearch.org/docs/latest/aggregations/metric/cardinality/](https://opensearch.org/docs/latest/aggregations/metric/cardinality/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Cardinality::make('products.product_id');
 ```
 
-### Maximum
+#### Maximum
 
 [https://opensearch.org/docs/latest/aggregations/metric/maximum/](https://opensearch.org/docs/latest/aggregations/metric/maximum/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Maximum::make('taxful_total_price');
 ```
 
-### Minimum
+#### Minimum
 
 [https://opensearch.org/docs/latest/aggregations/metric/minimum/](https://opensearch.org/docs/latest/aggregations/metric/minimum/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Minimum::make('taxful_total_price');
 ```
 
-### Percentile
+#### Percentile
 
 [https://opensearch.org/docs/latest/aggregations/metric/percentile/](https://opensearch.org/docs/latest/aggregations/metric/percentile/)
 ```php
@@ -270,21 +283,45 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price', percents: [50, 95, 99]);
 ```
 
-### Stats
+#### Stats
 
 [https://opensearch.org/docs/latest/aggregations/metric/stats/](https://opensearch.org/docs/latest/aggregations/metric/stats/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Stats::make('taxful_total_price');
 ```
 
-### Sum
+#### Sum
 
 [https://opensearch.org/docs/latest/aggregations/metric/sum/](https://opensearch.org/docs/latest/aggregations/metric/sum/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Sum::make('taxful_total_price');
 ```
 
-### Terms
+### Bucket aggregations
+
+#### Date Histogram
+
+[https://opensearch.org/docs/latest/aggregations/bucket/date-histogram/](https://opensearch.org/docs/latest/aggregations/bucket/date-histogram/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\DateHistogram::make('order_date', 'month');
+\Codeart\OpensearchLaravel\Aggregations\Types\DateHistogram::make('order_date', '30d', isIntervalFixed: true, format: 'yyyy-MM-dd');
+```
+
+#### Date Range
+
+[https://opensearch.org/docs/latest/aggregations/bucket/date-range/](https://opensearch.org/docs/latest/aggregations/bucket/date-range/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\DateRange::make('order_date', [['to' => 'now-10M/M'], ['from' => 'now-10M/M']], format: 'MM-yyyy');
+```
+
+#### Range
+
+[https://opensearch.org/docs/latest/aggregations/bucket/range/](https://opensearch.org/docs/latest/aggregations/bucket/range/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Range::make('taxful_total_price', [['to' => 50], ['from' => 50, 'to' => 100], ['from' => 100]]);
+```
+
+#### Terms
 
 [https://opensearch.org/docs/latest/aggregations/bucket/terms/](https://opensearch.org/docs/latest/aggregations/bucket/terms/)
 ```php
@@ -292,7 +329,9 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\Terms::make('company.name', 100, order: ['_count' => 'asc'], minDocCount: 5);
 ```
 
-### Bucket Sort
+### Pipeline aggregations
+
+#### Bucket Sort
 
 [https://opensearch.org/docs/latest/aggregations/pipeline/bucket-sort/](https://opensearch.org/docs/latest/aggregations/pipeline/bucket-sort/)
 ```php
@@ -300,7 +339,7 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('total_sales', order: 'desc', size: 5, from: 0);
 ```
 
-We plan to support more in the feature.
+If something you need is missing, see [Extending the functionality](#extending-the-functionality).
 
 ## Working with indices and documents
 

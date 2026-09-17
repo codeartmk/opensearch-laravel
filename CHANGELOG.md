@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Laravel 10, 11, 12 and 13 are now officially supported. A GitHub Actions workflow runs the test suite against each of them on every PHP version that Laravel release supports, with both the lowest and the newest allowed dependencies.
 - `Aggregation::make()` now accepts an array of sub-aggregations as well as a single one, so a bucket can hold several sibling aggregations.
 - `Percentile::make()` accepts an optional `percents` list, `BucketSort::make()` an optional `order`, `size` and `from`, and `Terms::make()` an optional `order` and `minDocCount`. Existing calls produce the same query as before.
+- The README now documents the existing `Terms` query and the `Range`, `DateRange` and `DateHistogram` aggregations, and groups the query and aggregation reference by category.
 
 ### Changed
 
