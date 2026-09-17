@@ -79,10 +79,7 @@ class OpenSearchDocuments
                 "index" => $this->indexName,
                 "id" => $entities->id,
                 "refresh" => true,
-                "retry_on_conflict" => 5,
-                "body" => [
-                    "doc" => $entities->openSearchArray(),
-                ],
+                "body" => $entities->openSearchArray(),
             ];
 
             $this->client->create($parameters);
