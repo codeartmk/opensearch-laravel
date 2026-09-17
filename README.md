@@ -59,18 +59,18 @@ class User extends Authenticatable implements OpenSearchable
 {
     use HasApiTokens, HasFactory, Notifiable, HasOpenSearchDocuments;
     
+    // Sent as the index's "mappings", so return its contents directly, starting with "properties".
     public function openSearchMapping(): array
     {
         return [
-            "mapping" => [
-                "properties" => [
-                    "id" => [ "type" => "integer" ],
-                    "first_name" => [ "type" => "text" ],
-                    "last_name" => [ "type" => "text" ],
-                    "name" => [ "type" => "text" ],
-                    "email" => [ "type" => "keyword" ],
-                    //...
-                ]
+            "properties" => [
+                "id" => [ "type" => "integer" ],
+                "first_name" => [ "type" => "text" ],
+                "last_name" => [ "type" => "text" ],
+                // The keyword sub-field lets you aggregate and sort on name.keyword
+                "name" => [ "type" => "text", "fields" => [ "keyword" => [ "type" => "keyword" ] ] ],
+                "email" => [ "type" => "keyword" ],
+                //...
             ]
         ];
     }
@@ -81,7 +81,7 @@ class User extends Authenticatable implements OpenSearchable
             "id" => $this->id,
             "first_name" => $this->first_name,
             "last_name" => $this->last_name,
-            "name" => $this->first_name + " " + $this->last_name,
+            "name" => "{$this->first_name} {$this->last_name}",
             "email" => $this->email,
             //...
         ];
@@ -127,7 +127,7 @@ User::opensearch()
     ->aggregations([
         Aggregation::make(
             name: "user_names",
-            aggregationType: Terms::make(field: 'name',  size: 10000),
+            aggregationType: Terms::make(field: 'name.keyword',  size: 10000),
             aggregation: Aggregation::make(
                 name: 'bucket_truncate',
                 aggregationType: BucketSort::make('_key')

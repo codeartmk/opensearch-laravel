@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `DateHistogram` aggregation now applies its `format` to the `date_histogram` key instead of adding a stray `date_range` key.
 - The `indices()->create()` docblock now documents the setting keys the method actually reads (`number_of_shards`, `number_of_replicas`, `refresh_interval`) instead of camelCase names that were silently ignored.
 - `documents()->createOrUpdate()` now throws `ModelException` when no model matches the given id, instead of fataling on a null model.
+- The README model example now returns the mapping's `properties` directly from `openSearchMapping()` instead of wrapping them in a `mapping` key, which `indices()->create()` sent as `mappings.mapping` and OpenSearch rejected. Its `openSearchArray()` now builds `name` with string interpolation instead of `+`, which throws a `TypeError` in PHP. The mapping gives `name` a `keyword` sub-field and the query example aggregates on `name.keyword`, because OpenSearch rejects terms aggregations on `text` fields.
 - `DateRange::make()` and `DateHistogram::make()` now declare their optional `format` and `offset` parameters as `?string`, removing the implicitly nullable parameter deprecation on PHP 8.4 and later.
 - `documents()->create()` with a single id no longer throws `UnexpectedValueException`. It sent `retry_on_conflict`, which the create endpoint rejects, and wrapped the document in a `doc` key that belongs to the update API, so the document would have been stored one level too deep.
 
