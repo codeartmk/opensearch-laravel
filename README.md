@@ -137,6 +137,12 @@ User::opensearch()
     ->get();
 ```
 
+`search()` takes a `Query`, a `Sort`, or one of each, in any order. Anything else, a second `Query` or `Sort`, or an
+empty list throws `InvalidSearchParametersException`. `aggregations()` takes an `Aggregation` or a list of them and
+throws `InvalidAggregationParametersException` for an empty list, an item that isn't an `Aggregation`, or two
+aggregations with the same name at the same level. Both exceptions implement
+`Codeart\OpensearchLaravel\Exceptions\OpenSearchException`.
+
 ### Sub-aggregations
 
 The `aggregation` parameter accepts a single `Aggregation` or an array of them, so a bucket can hold several

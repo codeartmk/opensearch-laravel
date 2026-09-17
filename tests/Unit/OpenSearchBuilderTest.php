@@ -4,10 +4,16 @@ namespace Codeart\OpensearchLaravel\Tests\Unit;
 
 use Codeart\OpensearchLaravel\Aggregations\Aggregation;
 use Codeart\OpensearchLaravel\Aggregations\Types\Terms;
+use Codeart\OpensearchLaravel\Exceptions\InvalidAggregationParametersException;
+use Codeart\OpensearchLaravel\Exceptions\InvalidSearchParametersException;
+use Codeart\OpensearchLaravel\Exceptions\OpenSearchException;
 use Codeart\OpensearchLaravel\OpenSearchable;
 use Codeart\OpensearchLaravel\OpenSearchBuilder;
 use Codeart\OpensearchLaravel\Search\Query;
+use Codeart\OpensearchLaravel\Search\SearchQueries\BoolQuery;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Must;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne;
+use Codeart\OpensearchLaravel\Search\Sort;
 use Mockery;
 use OpenSearch\Client;
 use PHPUnit\Framework\TestCase;
@@ -85,6 +91,87 @@ class OpenSearchBuilderTest extends TestCase
 
         $this->assertFalse($parameters['body']['_source']);
         $this->assertSame(100, $parameters['body']['track_total_hits']);
+    }
+
+    public function testSearchAcceptsAQueryAndASortInAnyOrder()
+    {
+        $parameters = $this->builder
+            ->search([Sort::make(['id' => 'desc']), Query::make([MatchOne::make('title', 'fox')])])
+            ->get();
+
+        $this->assertEquals([
+            'sort' => ['id' => 'desc'],
+            'query' => ['match' => ['title' => 'fox']],
+        ], $parameters['body']);
+    }
+
+    public function testSearchThrowsOnAnEmptyList()
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+
+        $this->builder->search([]);
+    }
+
+    public function testSearchThrowsOnMoreThanTwoItems()
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+
+        $this->builder->search([
+            Query::make([MatchOne::make('title', 'fox')]),
+            Sort::make(['id' => 'desc']),
+            Sort::make(['id' => 'asc']),
+        ]);
+    }
+
+    public function testSearchThrowsWhenAQueryNodeIsPassedWithoutAQuery()
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+        $this->expectExceptionMessage('The search method accepts only Query and Sort instances, ' . BoolQuery::class . ' given.');
+
+        $this->builder->search([BoolQuery::make([Must::make(MatchOne::make('title', 'fox'))])]);
+    }
+
+    public function testSearchThrowsOnTwoQueries()
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+        $this->expectExceptionMessage('The search method accepts only one Query.');
+
+        $this->builder->search([Query::make([MatchOne::make('title', 'fox')]), Query::make([MatchOne::make('title', 'dog')])]);
+    }
+
+    public function testSearchThrowsOnTwoSorts()
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+        $this->expectExceptionMessage('The search method accepts only one Sort.');
+
+        $this->builder->search([Sort::make(['id' => 'desc']), Sort::make(['id' => 'asc'])]);
+    }
+
+    public function testAnInvalidSearchKeepsThePreviousSearch()
+    {
+        $this->builder->search([Query::make([MatchOne::make('title', 'fox')])]);
+
+        try {
+            $this->builder->search(['not a query']);
+        } catch (InvalidSearchParametersException) {
+        }
+
+        $this->assertEquals(['query' => ['match' => ['title' => 'fox']]], $this->builder->get()['body']);
+    }
+
+    public function testAggregationsThrowsOnInvalidInput()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+
+        $this->builder->aggregations([Terms::make('category')]);
+    }
+
+    public function testTheSearchExceptionCanBeCaughtAsAPackageAndAnInvalidArgumentException()
+    {
+        $exception = new InvalidSearchParametersException();
+
+        $this->assertInstanceOf(OpenSearchException::class, $exception);
+        $this->assertInstanceOf(\InvalidArgumentException::class, $exception);
     }
 
     protected function tearDown(): void

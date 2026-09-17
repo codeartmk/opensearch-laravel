@@ -4,6 +4,8 @@ namespace Codeart\OpensearchLaravel;
 
 use Codeart\OpensearchLaravel\Aggregations\Aggregation;
 use Codeart\OpensearchLaravel\Aggregations\AggregationBuilder;
+use Codeart\OpensearchLaravel\Exceptions\InvalidAggregationParametersException;
+use Codeart\OpensearchLaravel\Exceptions\InvalidSearchParametersException;
 use Codeart\OpensearchLaravel\Search\Query;
 use Codeart\OpensearchLaravel\Search\SearchBuilder;
 use Codeart\OpensearchLaravel\Search\Sort;
@@ -27,45 +29,66 @@ class OpenSearchBuilder
     }
 
     /**
-     * @param array $parameters
+     * @param array $parameters One Query and/or one Sort
      * @return $this
-     * @throws \Exception
+     * @throws InvalidSearchParametersException
      */
     public function search(array $parameters): self
     {
         if (!count($parameters)) {
-            throw new \Exception('Too few parameters to search method. At least Query required.');
+            throw new InvalidSearchParametersException('Too few parameters to search method. At least Query required.');
         }
 
         if (count($parameters) > 2) {
-            throw new \Exception('Too many parameters to search method.');
+            throw new InvalidSearchParametersException('Too many parameters to search method.');
         }
 
-        $this->searchBuilder = new SearchBuilder();
+        $searchBuilder = new SearchBuilder();
+        $hasQuery = false;
+        $hasSort = false;
 
         foreach ($parameters as $parameter) {
-            if ($parameter instanceof Sort) {
-                $this->searchBuilder->setSort($parameter);
+            if ($parameter instanceof Query) {
+                if ($hasQuery) {
+                    throw new InvalidSearchParametersException('The search method accepts only one Query.');
+                }
+
+                $searchBuilder->setQuery($parameter);
+                $hasQuery = true;
+
+                continue;
             }
 
-            if ($parameter instanceof Query) {
-                $this->searchBuilder->setQuery($parameter);
+            if ($parameter instanceof Sort) {
+                if ($hasSort) {
+                    throw new InvalidSearchParametersException('The search method accepts only one Sort.');
+                }
+
+                $searchBuilder->setSort($parameter);
+                $hasSort = true;
+
+                continue;
             }
+
+            throw new InvalidSearchParametersException(sprintf(
+                'The search method accepts only Query and Sort instances, %s given.',
+                get_debug_type($parameter)
+            ));
         }
+
+        // Only replace the previous search once the new parameters are known to be valid.
+        $this->searchBuilder = $searchBuilder;
 
         return $this;
     }
 
     /**
-     * @throws \Exception
+     * @param Aggregation|Aggregation[] $parameters
+     * @return $this
+     * @throws InvalidAggregationParametersException
      */
     public function aggregations(Aggregation|array $parameters): self
     {
-        if (is_array($parameters) && !count($parameters)) {
-            throw new \Exception('Too few parameters to aggregation method. At one required.');
-
-        }
-
         $this->aggregationBuilder = new AggregationBuilder($parameters);
 
         return $this;
