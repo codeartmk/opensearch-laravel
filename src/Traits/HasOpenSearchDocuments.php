@@ -10,7 +10,7 @@ trait HasOpenSearchDocuments
 {
     final public static function opensearch(): OpenSearch
     {
-        return new OpenSearch(new self(), new OpensearchClientFactory());
+        return new OpenSearch(new self(), app(OpensearchClientFactory::class));
     }
 
     public function openSearchMapping(): array

@@ -18,8 +18,8 @@ class DateHistogram implements OpenSearchQuery, AggregationType
         string $field,
         string $interval,
         bool $isIntervalFixed = false,
-        string $format = null,
-        string $offset = null
+        ?string $format = null,
+        ?string $offset = null
     ): self
     {
         return new self($field, $interval, $isIntervalFixed, $format, $offset);
@@ -44,7 +44,7 @@ class DateHistogram implements OpenSearchQuery, AggregationType
         }
 
         if(!is_null($this->format)) {
-            $query['date_range']['format'] = $this->format;
+            $query['date_histogram']['format'] = $this->format;
         }
 
         return $query;

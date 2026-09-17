@@ -12,7 +12,7 @@ class DateRange implements OpenSearchQuery, AggregationType
         private readonly ?string $format
     ){}
 
-    public static function make(string $field, array $ranges, string $format = null): self
+    public static function make(string $field, array $ranges, ?string $format = null): self
     {
         return new self($field, $ranges, $format);
     }

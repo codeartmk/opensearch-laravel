@@ -2,6 +2,7 @@
 
 namespace Codeart\OpensearchLaravel;
 
+use Codeart\OpensearchLaravel\Exceptions\ModelException;
 use Codeart\OpensearchLaravel\Exceptions\OpenSearchCreateException;
 use OpenSearch\Client;
 
@@ -79,10 +80,7 @@ class OpenSearchDocuments
                 "index" => $this->indexName,
                 "id" => $entities->id,
                 "refresh" => true,
-                "retry_on_conflict" => 5,
-                "body" => [
-                    "doc" => $entities->openSearchArray(),
-                ],
+                "body" => $entities->openSearchArray(),
             ];
 
             $this->client->create($parameters);
@@ -119,6 +117,7 @@ class OpenSearchDocuments
      * @param callable|null $callable For eager loading relationships. Ex. fn($query) => $query->with('relationship')
      *
      * @return array
+     * @throws ModelException
      */
     public function createOrUpdate(int $id, ?callable $callable = null): array
     {
@@ -129,6 +128,10 @@ class OpenSearchDocuments
         }
 
         $entity = $query->find($id);
+
+        if (is_null($entity)) {
+            throw new ModelException("No model found with id:$id for index:$this->indexName.");
+        }
 
         $parameters = [
             "index" => $this->indexName,

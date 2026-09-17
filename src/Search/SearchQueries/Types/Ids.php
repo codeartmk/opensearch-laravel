@@ -24,7 +24,9 @@ class Ids implements SearchQueryType, OpenSearchQuery
         }
 
         return [
-            'values' =>  $values
+            'ids' => [
+                'values' => $values
+            ]
         ];
     }
 }
