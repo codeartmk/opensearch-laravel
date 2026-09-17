@@ -397,6 +397,14 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\Cardinality::make('products.product_id');
 ```
 
+#### Extended Stats
+
+[https://opensearch.org/docs/latest/aggregations/metric/extended-stats/](https://opensearch.org/docs/latest/aggregations/metric/extended-stats/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\ExtendedStats::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\ExtendedStats::make('taxful_total_price', sigma: 3);
+```
+
 #### Maximum
 
 [https://opensearch.org/docs/latest/aggregations/metric/maximum/](https://opensearch.org/docs/latest/aggregations/metric/maximum/)
@@ -419,6 +427,13 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price', percents: [50, 95, 99]);
 ```
 
+#### Percentile Ranks
+
+[https://opensearch.org/docs/latest/aggregations/metric/percentile-ranks/](https://opensearch.org/docs/latest/aggregations/metric/percentile-ranks/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\PercentileRanks::make('taxful_total_price', values: [50, 100]);
+```
+
 #### Stats
 
 [https://opensearch.org/docs/latest/aggregations/metric/stats/](https://opensearch.org/docs/latest/aggregations/metric/stats/)
@@ -431,6 +446,28 @@ Aggregation::make(
 [https://opensearch.org/docs/latest/aggregations/metric/sum/](https://opensearch.org/docs/latest/aggregations/metric/sum/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Sum::make('taxful_total_price');
+```
+
+#### Top Hits
+
+[https://opensearch.org/docs/latest/aggregations/metric/top-hits/](https://opensearch.org/docs/latest/aggregations/metric/top-hits/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\TopHits::make(size: 3);
+\Codeart\OpensearchLaravel\Aggregations\Types\TopHits::make(size: 1, sort: [['order_date' => ['order' => 'desc']]], source: ['customer_full_name', 'taxful_total_price']);
+```
+
+#### Value Count
+
+[https://opensearch.org/docs/latest/aggregations/metric/value-count/](https://opensearch.org/docs/latest/aggregations/metric/value-count/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\ValueCount::make('taxful_total_price');
+```
+
+#### Weighted Average
+
+[https://opensearch.org/docs/latest/aggregations/metric/weighted-avg/](https://opensearch.org/docs/latest/aggregations/metric/weighted-avg/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\WeightedAvg::make(valueField: 'taxful_total_price', weightField: 'total_quantity');
 ```
 
 ### Bucket aggregations
