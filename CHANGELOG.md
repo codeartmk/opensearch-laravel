@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Geographic queries: `GeoDistance` and `GeoBoundingBox`.
 - Specialized and term-level queries: `MoreLikeThis`, `Script`, `TermsSet` and `Knn` (requires the OpenSearch k-NN plugin).
 - Metric aggregations: `ValueCount`, `ExtendedStats`, `TopHits`, `PercentileRanks` and `WeightedAvg`.
+- Bucket aggregations: `Histogram`, `Filter`, `Filters`, `Missing`, `Nested`, `ReverseNested` and `GlobalBucket` (the `global` aggregation; `global` is a reserved word in PHP).
 - The README now documents the existing `Terms` query and the `Range`, `DateRange` and `DateHistogram` aggregations, and groups the query and aggregation reference by category.
 
 ### Changed

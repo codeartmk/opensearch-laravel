@@ -487,11 +487,61 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\DateRange::make('order_date', [['to' => 'now-10M/M'], ['from' => 'now-10M/M']], format: 'MM-yyyy');
 ```
 
+#### Filter
+
+[https://opensearch.org/docs/latest/aggregations/bucket/filter/](https://opensearch.org/docs/latest/aggregations/bucket/filter/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Filter::make(Term::make('currency', 'EUR'));
+```
+
+#### Filters
+
+[https://opensearch.org/docs/latest/aggregations/bucket/filters/](https://opensearch.org/docs/latest/aggregations/bucket/filters/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Filters::make(['eur' => Term::make('currency', 'EUR'), 'usd' => Term::make('currency', 'USD')], otherBucketKey: 'other');
+```
+
+#### Global
+
+[https://opensearch.org/docs/latest/aggregations/bucket/global/](https://opensearch.org/docs/latest/aggregations/bucket/global/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\GlobalBucket::make(); // named GlobalBucket because `global` is a reserved word in PHP
+```
+
+#### Histogram
+
+[https://opensearch.org/docs/latest/aggregations/bucket/histogram/](https://opensearch.org/docs/latest/aggregations/bucket/histogram/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Histogram::make('taxful_total_price', interval: 50, minDocCount: 1);
+```
+
+#### Missing
+
+[https://opensearch.org/docs/latest/aggregations/bucket/missing/](https://opensearch.org/docs/latest/aggregations/bucket/missing/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Missing::make('discount');
+```
+
+#### Nested
+
+[https://opensearch.org/docs/latest/aggregations/bucket/nested/](https://opensearch.org/docs/latest/aggregations/bucket/nested/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\Nested::make('products');
+```
+
 #### Range
 
 [https://opensearch.org/docs/latest/aggregations/bucket/range/](https://opensearch.org/docs/latest/aggregations/bucket/range/)
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\Range::make('taxful_total_price', [['to' => 50], ['from' => 50, 'to' => 100], ['from' => 100]]);
+```
+
+#### Reverse Nested
+
+[https://opensearch.org/docs/latest/aggregations/bucket/reverse-nested/](https://opensearch.org/docs/latest/aggregations/bucket/reverse-nested/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\ReverseNested::make();
+\Codeart\OpensearchLaravel\Aggregations\Types\ReverseNested::make('products');
 ```
 
 #### Terms
