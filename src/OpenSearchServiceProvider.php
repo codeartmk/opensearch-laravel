@@ -6,16 +6,15 @@ use Illuminate\Support\ServiceProvider;
 
 class OpenSearchServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/opensearch-laravel.php', 'opensearch-laravel');
     }
 
-    public function boot()
+    public function boot(): void
     {
         $this->publishes([
             __DIR__.'/../config/opensearch-laravel.php' => config_path('opensearch-laravel.php'),
-        ],'config');
-
+        ], 'config');
     }
 }
