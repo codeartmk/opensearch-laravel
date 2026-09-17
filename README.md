@@ -472,6 +472,19 @@ Aggregation::make(
 
 ### Bucket aggregations
 
+#### Composite
+
+[https://opensearch.org/docs/latest/aggregations/bucket/composite/](https://opensearch.org/docs/latest/aggregations/bucket/composite/)
+```php
+// A string source is a terms source on that field. Aggregations like Histogram and DateHistogram,
+// or raw source arrays, can be used too. Pass the previous response's after_key as `after` to page.
+\Codeart\OpensearchLaravel\Aggregations\Types\Composite::make(
+    sources: ['category' => 'category.keyword', 'month' => DateHistogram::make('order_date', 'month')],
+    size: 100,
+    after: ['category' => "Men's Clothing", 'month' => 1672531200000]
+);
+```
+
 #### Date Histogram
 
 [https://opensearch.org/docs/latest/aggregations/bucket/date-histogram/](https://opensearch.org/docs/latest/aggregations/bucket/date-histogram/)
@@ -522,6 +535,13 @@ Aggregation::make(
 \Codeart\OpensearchLaravel\Aggregations\Types\Missing::make('discount');
 ```
 
+#### Multi Terms
+
+[https://opensearch.org/docs/latest/aggregations/bucket/multi-terms/](https://opensearch.org/docs/latest/aggregations/bucket/multi-terms/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\MultiTerms::make(['region', 'host'], size: 10);
+```
+
 #### Nested
 
 [https://opensearch.org/docs/latest/aggregations/bucket/nested/](https://opensearch.org/docs/latest/aggregations/bucket/nested/)
@@ -542,6 +562,13 @@ Aggregation::make(
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\ReverseNested::make();
 \Codeart\OpensearchLaravel\Aggregations\Types\ReverseNested::make('products');
+```
+
+#### Significant Terms
+
+[https://opensearch.org/docs/latest/aggregations/bucket/significant-terms/](https://opensearch.org/docs/latest/aggregations/bucket/significant-terms/)
+```php
+\Codeart\OpensearchLaravel\Aggregations\Types\SignificantTerms::make('manufacturer.keyword', size: 5);
 ```
 
 #### Terms
