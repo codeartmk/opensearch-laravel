@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `DateHistogram` aggregation now applies its `format` to the `date_histogram` key instead of adding a stray `date_range` key.
 - The `indices()->create()` docblock now documents the setting keys the method actually reads (`number_of_shards`, `number_of_replicas`, `refresh_interval`) instead of camelCase names that were silently ignored.
 - `documents()->createOrUpdate()` now throws `ModelException` when no model matches the given id, instead of fataling on a null model.
+- `DateRange::make()` and `DateHistogram::make()` now declare their optional `format` and `offset` parameters as `?string`, removing the implicitly nullable parameter deprecation on PHP 8.4 and later.
 - `documents()->create()` with a single id no longer throws `UnexpectedValueException`. It sent `retry_on_conflict`, which the create endpoint rejects, and wrapped the document in a `doc` key that belongs to the update API, so the document would have been stored one level too deep.
 
 ## [1.0.2] - 2024-06-12

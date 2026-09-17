@@ -18,8 +18,8 @@ class DateHistogram implements OpenSearchQuery, AggregationType
         string $field,
         string $interval,
         bool $isIntervalFixed = false,
-        string $format = null,
-        string $offset = null
+        ?string $format = null,
+        ?string $offset = null
     ): self
     {
         return new self($field, $interval, $isIntervalFixed, $format, $offset);
