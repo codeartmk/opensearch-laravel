@@ -4,8 +4,23 @@ namespace Codeart\OpensearchLaravel\Aggregations\Types;
 
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
+/**
+ * A `scripted_metric` metric aggregation: a metric calculated by your own scripts, run per shard (init, map,
+ * combine) and then once to merge the shard results (reduce).
+ *
+ * @see https://opensearch.org/docs/latest/aggregations/metric/scripted-metric/
+ */
 class ScriptedMetric implements OpenSearchQuery, AggregationType
 {
+    /**
+     * @param string $mapScript Runs once per document, e.g. "state.total += doc['price'].value"
+     * @param string $combineScript Runs once per shard and returns that shard's result
+     * @param string $reduceScript Runs once and merges the shard results, available as `states`
+     * @param string|null $initScript Runs once per shard before any document, e.g. to set up `state`. Null leaves it
+     *                                out
+     * @param array<string, mixed>|null $params Values made available to the scripts as `params`. Null or an empty array
+     *                                          leaves it out
+     */
     public function __construct(
         private readonly string $mapScript,
         private readonly string $combineScript,
@@ -14,6 +29,16 @@ class ScriptedMetric implements OpenSearchQuery, AggregationType
         private readonly ?array $params
     ){}
 
+    /**
+     * @param string $mapScript Runs once per document, e.g. "state.total += doc['price'].value"
+     * @param string $combineScript Runs once per shard and returns that shard's result
+     * @param string $reduceScript Runs once and merges the shard results, available as `states`
+     * @param string|null $initScript Runs once per shard before any document, e.g. to set up `state`. Null leaves it
+     *                                out
+     * @param array<string, mixed>|null $params Values made available to the scripts as `params`. Null or an empty array
+     *                                          leaves it out
+     * @return self
+     */
     public static function make(
         string $mapScript,
         string $combineScript,
@@ -25,6 +50,9 @@ class ScriptedMetric implements OpenSearchQuery, AggregationType
         return new self($mapScript, $combineScript, $reduceScript, $initScript, $params);
     }
 
+    /**
+     * @return array{scripted_metric: array{init_script?: string, map_script: string, combine_script: string, reduce_script: string, params?: array<string, mixed>}}
+     */
     public function toOpenSearchQuery(): array
     {
         $query = [
