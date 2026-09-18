@@ -372,6 +372,7 @@ User::opensearch()
 [https://opensearch.org/docs/latest/query-dsl/term/ids/](https://opensearch.org/docs/latest/query-dsl/term/ids/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make([34229, 91296]);
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make('9b2c7e1a-4f3d-4e8a-9c61-2d5f0a7b8e34');
 ```
 
 #### Prefix

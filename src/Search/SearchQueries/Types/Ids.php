@@ -12,19 +12,21 @@ use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 class Ids implements SearchQueryType, OpenSearchQuery
 {
     /**
-     * @param int|array<array-key, int|string> $value One id, or a list of ids; a single id is sent as a one-item list.
-     *                                                A single string id has to be passed in an array
+     * @param int|string|array<array-key, int|string> $value One id, or a list of ids; a single id is sent as a
+     *                                                       one-item list. String ids (e.g. UUID primary keys) work
+     *                                                       both on their own and in a list
      */
     public function __construct(
-        private readonly int|array $value,
+        private readonly int|string|array $value,
     ){}
 
     /**
-     * @param int|array<array-key, int|string> $value One id, or a list of ids; a single id is sent as a one-item list.
-     *                                                A single string id has to be passed in an array
+     * @param int|string|array<array-key, int|string> $value One id, or a list of ids; a single id is sent as a
+     *                                                       one-item list. String ids (e.g. UUID primary keys) work
+     *                                                       both on their own and in a list
      * @return self
      */
-    public static function make(int|array $value): self
+    public static function make(int|string|array $value): self
     {
         return new self($value);
     }
