@@ -124,6 +124,23 @@ name to every matching index and, by default, deletes all of them. This only aff
 `openSearchIndexName()` (or `OPENSEARCH_INDEX_PREFIX`) contains one of those; searching such a pattern still works.
 Delete the concrete indices by name with the client instead.
 
+### `BoolQuery` checks its option values
+
+`BoolQuery` now throws `InvalidSearchParametersException` when `minimum_should_match` is not an int or a string, or
+`boost` is not an int, a float or a numeric string — a clause object under either key included. Such a query was
+already rejected by OpenSearch, with one exception: without a Should clause `minimum_should_match` is not sent, so a
+clause or a float under that key used to pass silently. Put clauses in the list (or under their own key, `'must' =>`)
+and pass `minimum_should_match` as an int or a string. `null` under either key is still allowed and leaves the option
+out.
+
+```php
+// throws in 2.0
+BoolQuery::make([Must::make(...), 'minimum_should_match' => Filter::make(...)]);
+
+// instead
+BoolQuery::make([Must::make(...), Filter::make(...)]);
+```
+
 ### Exceptions of the underlying client
 
 The client is now built with opensearch-php's `GuzzleClientFactory` instead of the deprecated `ClientBuilder`

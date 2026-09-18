@@ -11,6 +11,7 @@ use Codeart\OpensearchLaravel\Search\SearchQueries\Should;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\Exists;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\Term;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class BoolQueryTest extends TestCase
@@ -99,6 +100,77 @@ class BoolQueryTest extends TestCase
         BoolQuery::make([
             Should::make(Term::make('tags', 'fox')),
             'minimum_should_matches' => 1,
+        ]);
+    }
+
+    public function testAcceptsIntAndStringMinimumShouldMatch()
+    {
+        foreach ([1, -1, '1', '75%', '3<90%'] as $value) {
+            $query = BoolQuery::make([
+                Should::make(Term::make('tags', 'fox')),
+                'minimum_should_match' => $value,
+            ]);
+
+            $this->assertSame($value, $query->toOpenSearchQuery()['bool']['minimum_should_match']);
+        }
+    }
+
+    public function testAcceptsIntFloatAndNumericStringBoost()
+    {
+        foreach ([2, 1.5, '2', '1.5'] as $value) {
+            $query = BoolQuery::make([
+                Must::make(Term::make('tags', 'fox')),
+                'boost' => $value,
+            ]);
+
+            $this->assertSame($value, $query->toOpenSearchQuery()['bool']['boost']);
+        }
+    }
+
+    public function testLeavesOutOptionsSetToNull()
+    {
+        $query = BoolQuery::make([
+            Should::make(Term::make('tags', 'fox')),
+            'minimum_should_match' => null,
+            'boost' => null,
+        ]);
+
+        $this->assertSame([
+            'bool' => [
+                'should' => ['term' => ['tags' => 'fox']],
+            ],
+        ], $query->toOpenSearchQuery());
+        $this->assertSame('{"bool":{}}', json_encode(BoolQuery::make(['boost' => null])->toOpenSearchQuery()));
+    }
+
+    public static function invalidOptionProvider(): array
+    {
+        $must = Must::make(Term::make('tags', 'fox'));
+        $should = Should::make(Term::make('tags', 'fox'));
+
+        return [
+            'Must under minimum_should_match' => ['minimum_should_match', $must, Must::class, 'an int or a string'],
+            'Should under minimum_should_match' => ['minimum_should_match', $should, Should::class, 'an int or a string'],
+            'MustNot under boost' => ['boost', MustNot::make(Term::make('tags', 'fox')), MustNot::class, 'an int, a float or a numeric string'],
+            'Filter under boost' => ['boost', Filter::make(Exists::make('price')), Filter::class, 'an int, a float or a numeric string'],
+            'float minimum_should_match' => ['minimum_should_match', 1.5, 'float', 'an int or a string'],
+            'bool minimum_should_match' => ['minimum_should_match', true, 'bool', 'an int or a string'],
+            'array minimum_should_match' => ['minimum_should_match', [1], 'array', 'an int or a string'],
+            'non-numeric string boost' => ['boost', 'high', 'string', 'an int, a float or a numeric string'],
+            'bool boost' => ['boost', true, 'bool', 'an int, a float or a numeric string'],
+            'array boost' => ['boost', [1], 'array', 'an int, a float or a numeric string'],
+        ];
+    }
+
+    #[DataProvider('invalidOptionProvider')]
+    public function testThrowsOnAnInvalidOptionValue(string $key, mixed $value, string $type, string $expected)
+    {
+        $this->expectException(InvalidSearchParametersException::class);
+        $this->expectExceptionMessage("BoolQuery option \"$key\" must be $expected, $type given.");
+
+        BoolQuery::make([
+            Should::make(Term::make('tags', 'dog')),
+            $key => $value,
         ]);
     }
 
