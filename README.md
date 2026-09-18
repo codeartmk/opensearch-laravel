@@ -191,8 +191,17 @@ Aggregation::make(
 
 ### Pagination, source filtering, highlighting and total hits
 
-`size()` defaults to `10000`. If you only need aggregations, call `->size(0)` so no documents are returned alongside
-them. The other options are only sent when you call them.
+Every option below is only sent when you call it. Without `size()`, OpenSearch's own default of 10 hits applies, so
+call `->size(...)` when you need more. If you only need aggregations, call `->size(0)` so no documents are returned
+alongside them:
+
+```php
+User::opensearch()
+    ->builder()
+    ->aggregations(Aggregation::make('categories', Terms::make('category')))
+    ->size(0)
+    ->get();
+```
 
 ```php
 use App\Models\User;
@@ -203,7 +212,7 @@ User::opensearch()
         Query::make([MatchOne::make('bio', 'laravel')]),
     ])
     ->size(20)
-    ->from(40) // requires size(); from + size can't exceed the index's max_result_window (10000 by default)
+    ->from(40) // from + size can't exceed the index's max_result_window (10000 by default)
     ->source(['name', 'email']) // or false, a single field, or ['includes' => [...], 'excludes' => [...]]
     ->highlight(['bio', 'title' => ['fragment_size' => 50]], ['pre_tags' => ['<b>'], 'post_tags' => ['</b>']])
     ->trackTotalHits() // true, false, or a number to count up to

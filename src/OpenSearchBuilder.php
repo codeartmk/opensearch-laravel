@@ -15,8 +15,7 @@ class OpenSearchBuilder
 {
     private SearchBuilder $searchBuilder;
     private AggregationBuilder $aggregationBuilder;
-    private int $size = 10000;
-    private bool $isSizeSet = false;
+    private ?int $size = null;
     private ?int $from = null;
     private array|bool|string|null $source = null;
     private ?array $highlight = null;
@@ -95,17 +94,19 @@ class OpenSearchBuilder
         return $this;
     }
 
+    /**
+     * The number of hits to return. Only sent when called, so OpenSearch's default of 10 applies otherwise.
+     * Call `size(0)` for aggregation-only searches.
+     */
     public function size(int $size): self
     {
         $this->size = $size;
-        $this->isSizeSet = true;
 
         return $this;
     }
 
     /**
-     * Skips the first `$from` hits. `from + size` can't exceed the index's max_result_window (10000 by default),
-     * so `size()` must be called too; get() throws if it wasn't.
+     * Skips the first `$from` hits. `from + size` can't exceed the index's max_result_window (10000 by default).
      */
     public function from(int $from): self
     {
@@ -161,26 +162,19 @@ class OpenSearchBuilder
         return $this;
     }
 
-    /**
-     * @throws InvalidSearchParametersException
-     */
     public function get(): array
     {
-        // With the default size of 10000, any from() above 0 exceeds OpenSearch's default result window and always fails.
-        if (!is_null($this->from) && $this->from > 0 && !$this->isSizeSet) {
-            throw new InvalidSearchParametersException(
-                'Call size() when using from(). The default size of 10000 plus from() exceeds the default result window of 10000.'
-            );
-        }
-
         $parameters = [
             "index" => IndexNameResolver::resolve($this->model),
-            "size" => $this->size,
             "body" => [
                 ...(isset($this->searchBuilder) ? $this->searchBuilder->toOpenSearchQuery() : []),
                 ...(isset($this->aggregationBuilder) ? $this->aggregationBuilder->toOpenSearchQuery() : [])
             ],
         ];
+
+        if (!is_null($this->size)) {
+            $parameters["size"] = $this->size;
+        }
 
         if (!is_null($this->from)) {
             $parameters["from"] = $this->from;

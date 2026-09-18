@@ -25,7 +25,6 @@ class OpenSearchClientFactoryTest extends TestCase
 
         $this->assertSame([
             'index' => 'mockopensearchables',
-            'size' => 10000,
             'body' => [],
         ], MockOpenSearchable::opensearch()->builder()->get());
     }
