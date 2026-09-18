@@ -33,6 +33,20 @@ class IndexNameResolverTest extends TestCase
         $this->assertSame('local_users', IndexNameResolver::resolve($this->model));
     }
 
+    public function testIsConcreteAcceptsSingleIndexNames()
+    {
+        foreach (['users', 'local_users', 'logs-2026.09.18', 'all'] as $indexName) {
+            $this->assertTrue(IndexNameResolver::isConcrete($indexName), $indexName);
+        }
+    }
+
+    public function testIsConcreteRejectsNamesThatMatchMoreThanOneIndex()
+    {
+        foreach (['', '_all', '*', 'logs-*', 'users,orders'] as $indexName) {
+            $this->assertFalse(IndexNameResolver::isConcrete($indexName), $indexName);
+        }
+    }
+
     public function testDoesNotAddASeparator()
     {
         config(['opensearch-laravel.index_prefix' => 'staging']);

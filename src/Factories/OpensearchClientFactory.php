@@ -32,6 +32,7 @@ class OpensearchClientFactory
     {
         $options = [
             'base_uri' => config('opensearch-laravel.host'),
+            // Passed through as-is: Guzzle takes true, false or the path to a CA bundle, so it must not be cast to bool.
             'verify' => config('opensearch-laravel.ssl_verification'),
         ];
 
@@ -40,7 +41,8 @@ class OpensearchClientFactory
         // Without a username Guzzle would still send an empty basic-auth header, which a cluster
         // with no security plugin doesn't expect.
         if ($username !== null && $username !== '') {
-            $options['auth'] = [$username, config('opensearch-laravel.password')];
+            // Guzzle 8 rejects a null password, and the password no longer has a default.
+            $options['auth'] = [(string)$username, (string)config('opensearch-laravel.password')];
         }
 
         return $options;

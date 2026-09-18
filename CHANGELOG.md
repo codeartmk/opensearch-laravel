@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Per-environment index names: the new `index_prefix` config key (`OPENSEARCH_INDEX_PREFIX`, default empty) is prepended verbatim to every index name the package uses — in searches, `indices()` and `documents()` — so environments can share one cluster (`local_users`, `staging_users`). It applies on top of `openSearchIndexName()`, including overrides of it. An empty prefix keeps the index names unchanged.
-- `OpenSearchHealth`, a service class for application health endpoints, resolved from the container: `isReachable()` (ping, never throws), `cluster()` (the raw cluster health response), `index($indexName)` (status, document count, store size and the common index settings as one flat array, with `null` for settings left to the cluster default) and `report($indexNames)` (one summary that never throws when the cluster is unreachable). It takes full index names; use `IndexNameResolver::resolve($model)` for a model's prefixed index.
+- `OpenSearchHealth`, a service class for application health endpoints, resolved from the container: `isReachable()` (ping, never throws), `cluster()` (the raw cluster health response), `index($indexName)` (status, document count, store size and the common index settings as one flat array, with `null` for settings left to the cluster default) and `report($indexNames)` (one summary that never throws when the cluster is unreachable; a call the cluster refuses or fails with an HTTP error, such as a `403` without the monitor privileges, leaves just that part `null`). It takes full index names; use `IndexNameResolver::resolve($model)` for a model's prefixed index. `index()` throws `InvalidIndexNameException` for an empty name, `_all`, or a name with a wildcard or a comma, which OpenSearch would answer with the stats of several indices.
 
 ### Changed
 
@@ -31,9 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   | `Minimum` | `Min` | `min` |
   | `Maximum` | `Max` | `max` |
   | `Percentile` | `Percentiles` | `percentiles` |
+- **Breaking:** `ssl_verification` (`OPENSEARCH_SSL_VERIFICATION`) now defaults to `true`, so the cluster's TLS certificate is verified unless you turn it off. It used to default to `false`, which silently accepted any certificate on a production deploy that forgot the variable. For a local cluster with a self-signed certificate, set `OPENSEARCH_SSL_VERIFICATION=false` explicitly; for a private CA, set it to the path of the CA bundle.
+- **Breaking:** `username` and `password` (`OPENSEARCH_USERNAME`, `OPENSEARCH_PASSWORD`) no longer default to `admin`. When no username is set, no credentials are sent. Apps that relied on the `admin`/`admin` fallback must set both variables.
+- Both defaults only apply if your app never published the config, or re-publishes it: a `config/opensearch-laravel.php` published from 1.x still has `false` and `admin` as its fallbacks. Update those lines in your copy (or delete it and publish it again).
+- **Breaking:** `indices()->delete()` now throws `InvalidIndexNameException` instead of sending the request when the index name is empty, is `_all`, or contains a wildcard (`*`) or a comma — names OpenSearch expands to several indices, all of which it deletes by default.
 
 ### Fixed
 
+- When a username is set without a password, the client now sends an empty password. It passed `null`, which Guzzle 8 rejects with an `InvalidArgumentException`; this matters now that the password has no default.
 - `documents()->create()` with a single id that matches no model now throws `ModelException`, like `createOrUpdate()` does. It used to fail with a fatal error on `null`.
 
 ### Removed
@@ -41,6 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Laravel 10 and 11, which are past end of life, and for PHP 8.1. Apps on those versions will stay on 1.x.
 - **Breaking:** the exception classes `IndexException`, `IndexDoesntExistException`, `ModelConfigurationException` and `SearchFailedException` in `Codeart\OpensearchLaravel\Exceptions` were deleted. The package never threw them, so no behaviour changes, but `catch` blocks or `use` statements that name them must be removed. To catch any exception from the package, catch the `OpenSearchException` interface.
 - The `#[Pure]` attributes on `ModelException` and `IndexAlreadyExistException`. They came from `jetbrains/phpstorm-attributes`, which was never a dependency.
+
+### Security
+
+- TLS certificate verification is on by default (`ssl_verification` defaults to `true`), and there are no default credentials: the package no longer tries `admin`/`admin` against whatever host is configured. See **Changed** for what to update.
+- `indices()->delete()` refuses index names that would delete more than one index (wildcards, commas, `_all`).
+- The configuration docs now cover the CA-bundle path option for `ssl_verification` and warn against putting credentials in `OPENSEARCH_HOST`.
 
 ## [1.1.0] - 2026-09-17
 

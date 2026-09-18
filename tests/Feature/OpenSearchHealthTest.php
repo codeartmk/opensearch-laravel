@@ -2,6 +2,7 @@
 
 namespace Codeart\OpensearchLaravel\Tests\Feature;
 
+use Codeart\OpensearchLaravel\Exceptions\InvalidIndexNameException;
 use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
 use Codeart\OpensearchLaravel\OpenSearchHealth;
 use Codeart\OpensearchLaravel\Tests\TestCase;
@@ -10,10 +11,13 @@ use GuzzleHttp\Psr7\Request;
 use Mockery;
 use Mockery\MockInterface;
 use OpenSearch\Client;
+use OpenSearch\Exception\ForbiddenHttpException;
+use OpenSearch\Exception\InternalServerErrorHttpException;
 use OpenSearch\Exception\NotFoundHttpException;
 use OpenSearch\Exception\UnauthorizedHttpException;
 use OpenSearch\Namespaces\ClusterNamespace;
 use OpenSearch\Namespaces\IndicesNamespace;
+use RuntimeException;
 
 class OpenSearchHealthTest extends TestCase
 {
@@ -151,6 +155,47 @@ class OpenSearchHealthTest extends TestCase
         $this->cluster->shouldReceive('health')->andThrow($this->connectException());
 
         $this->assertFalse($this->health()->report()['reachable']);
+    }
+
+    public function testReportDoesNotThrowWhenTheClusterAnswersWithHttpErrors()
+    {
+        $this->mockedClient->shouldReceive('ping')->andReturn(true);
+        $this->mockedClient->shouldReceive('info')->andThrow(new InternalServerErrorHttpException());
+        $this->cluster->shouldReceive('health')->withNoArgs()->andThrow(new ForbiddenHttpException());
+        $this->indices->shouldReceive('getSettings')
+            ->with(['index' => 'local_users'])
+            ->andThrow(new ForbiddenHttpException());
+
+        $this->assertSame([
+            'reachable' => true,
+            'cluster' => null,
+            'version' => null,
+            'indices' => ['local_users' => null],
+        ], $this->health()->report(['local_users']));
+    }
+
+    public function testReportStillThrowsErrorsThatAreNotHttpErrors()
+    {
+        $this->mockedClient->shouldReceive('ping')->andReturn(true);
+        $this->indices->shouldReceive('getSettings')->andThrow(new RuntimeException('Unexpected response'));
+
+        $this->expectException(RuntimeException::class);
+
+        $this->health()->report(['local_users']);
+    }
+
+    public function testIndexRefusesNamesThatMatchMoreThanOneIndex()
+    {
+        $this->indices->shouldNotReceive('getSettings');
+
+        foreach (['', 'local_*', 'local_users,local_orders', '_all'] as $indexName) {
+            try {
+                $this->health()->index($indexName);
+                $this->fail("The health check of '$indexName' should have been refused.");
+            } catch (InvalidIndexNameException $e) {
+                $this->assertStringContainsString("'$indexName'", $e->getMessage());
+            }
+        }
     }
 
     private function health(): OpenSearchHealth

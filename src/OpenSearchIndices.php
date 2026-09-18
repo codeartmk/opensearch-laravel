@@ -3,6 +3,7 @@
 namespace Codeart\OpensearchLaravel;
 
 use Codeart\OpensearchLaravel\Exceptions\IndexAlreadyExistException;
+use Codeart\OpensearchLaravel\Exceptions\InvalidIndexNameException;
 use OpenSearch\Client;
 
 class OpenSearchIndices
@@ -58,10 +59,19 @@ class OpenSearchIndices
     /**
      * Deletes the index for the model
      *
+     * OpenSearch expands a wildcard, a comma-separated list or `_all` in the name to every matching index,
+     * and deleting by a pattern is allowed by default (`action.destructive_requires_name` is false). A name
+     * like that is refused here, since it can never be a single index: index names can't contain `*` or `,`.
+     *
      * @return array
+     * @throws InvalidIndexNameException When the resolved index name can match more than one index
      */
     public function delete(): array
     {
+        if (!IndexNameResolver::isConcrete($this->indexName)) {
+            throw new InvalidIndexNameException($this->indexName, 'Deleting an index');
+        }
+
         $parameters = [
             'index' => $this->indexName
         ];

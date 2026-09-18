@@ -80,6 +80,37 @@ class OpenSearchClientFactoryTest extends TestCase
         }
     }
 
+    public function testTheDefaultConfigVerifiesTlsAndSendsNoCredentials()
+    {
+        $this->assertTrue(config('opensearch-laravel.ssl_verification'));
+        $this->assertNull(config('opensearch-laravel.username'));
+        $this->assertNull(config('opensearch-laravel.password'));
+
+        $options = $this->clientOptions();
+
+        $this->assertTrue($options['verify']);
+        $this->assertArrayNotHasKey('auth', $options);
+    }
+
+    public function testSslVerificationIsPassedToGuzzleUnchanged()
+    {
+        foreach ([true, false, '/etc/ssl/certs/opensearch-ca.pem'] as $sslVerification) {
+            config(['opensearch-laravel.ssl_verification' => $sslVerification]);
+
+            $this->assertSame($sslVerification, $this->clientOptions()['verify']);
+        }
+    }
+
+    public function testAMissingPasswordIsSentAsAnEmptyString()
+    {
+        config([
+            'opensearch-laravel.username' => 'user',
+            'opensearch-laravel.password' => null,
+        ]);
+
+        $this->assertSame(['user', ''], $this->clientOptions()['auth']);
+    }
+
     private function clientOptions(): array
     {
         return (new ReflectionMethod(OpensearchClientFactory::class, 'options'))

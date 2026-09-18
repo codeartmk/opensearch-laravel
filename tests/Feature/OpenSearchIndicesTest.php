@@ -3,6 +3,7 @@
 namespace Codeart\OpensearchLaravel\Tests\Feature;
 
 use Codeart\OpensearchLaravel\Exceptions\IndexAlreadyExistException;
+use Codeart\OpensearchLaravel\Exceptions\InvalidIndexNameException;
 use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
 use Codeart\OpensearchLaravel\OpenSearchable;
 use Codeart\OpensearchLaravel\OpenSearchIndices;
@@ -26,7 +27,7 @@ class OpenSearchIndicesTest extends TestCase {
         $this->mockedClient->shouldReceive('indices->create')
             ->andReturnUsing(fn($params) => $params);
 
-        $this->clientFactory = $this->createMock(OpensearchClientFactory::class);
+        $this->clientFactory = $this->createStub(OpensearchClientFactory::class);
         $this->clientFactory->method('createClient')
             ->willReturn($this->mockedClient);
 
@@ -113,6 +114,36 @@ class OpenSearchIndicesTest extends TestCase {
             ['index' => 'local_' . $this->mockOpenSearchable->openSearchIndexName()],
             $os->delete()
         );
+    }
+
+    public function testDeleteRefusesNamesThatMatchMoreThanOneIndex()
+    {
+        $this->mockedClient->shouldNotReceive('indices->delete');
+
+        foreach (['logs-*', 'users,orders', '_all'] as $indexName) {
+            $model = Mockery::mock(MockOpenSearchable::class)->makePartial();
+            $model->shouldReceive('openSearchIndexName')->andReturn($indexName);
+
+            $os = new OpenSearchIndices($this->clientFactory->createClient(), $model);
+
+            try {
+                $os->delete();
+                $this->fail("Deleting '$indexName' should have been refused.");
+            } catch (InvalidIndexNameException $e) {
+                $this->assertStringContainsString("'$indexName'", $e->getMessage());
+            }
+        }
+    }
+
+    public function testDeleteRefusesAWildcardInThePrefix()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local*']);
+
+        $this->mockedClient->shouldNotReceive('indices->delete');
+
+        $this->expectException(InvalidIndexNameException::class);
+
+        (new OpenSearchIndices($this->clientFactory->createClient(), $this->mockOpenSearchable))->delete();
     }
 
     public function testExistsTargetsThePrefixedIndex()

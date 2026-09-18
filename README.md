@@ -25,6 +25,40 @@ and then export the configuration with
 php artisan vendor:publish --provider="Codeart\OpensearchLaravel\OpenSearchServiceProvider" --tag="config"
 ```
 
+## Configuration
+
+The connection is configured in `config/opensearch-laravel.php`, from these environment variables:
+
+| Variable | Default | |
+|---|---|---|
+| `OPENSEARCH_HOST` | `http://localhost:9200` | The cluster URL. |
+| `OPENSEARCH_USERNAME` | not set | Basic-auth username. When it is not set, no credentials are sent — for a cluster without the security plugin. |
+| `OPENSEARCH_PASSWORD` | not set | Basic-auth password, used only together with the username. |
+| `OPENSEARCH_SSL_VERIFICATION` | `true` | TLS certificate verification (see below). |
+| `OPENSEARCH_INDEX_PREFIX` | empty | Prepended to every index name (see [Per-environment indices](#per-environment-indices)). |
+
+```dotenv
+OPENSEARCH_HOST=https://search.example.com:9200
+OPENSEARCH_USERNAME=app
+OPENSEARCH_PASSWORD=secret
+```
+
+`OPENSEARCH_SSL_VERIFICATION` is passed to Guzzle's
+[`verify`](https://docs.guzzlephp.org/en/stable/request-options.html#verify) option and takes one of three values:
+
+- `true` (the default) verifies the cluster's certificate against the system CA bundle.
+- A path to a CA bundle file (or a directory of certificates), for a cluster whose certificate is signed by a private
+  CA: `OPENSEARCH_SSL_VERIFICATION=/etc/ssl/certs/opensearch-ca.pem`. The path must exist, or every request fails.
+- `false` turns verification off. Only use it for a local cluster with a self-signed certificate, such as the default
+  OpenSearch Docker image: any certificate is then accepted, so the connection can be intercepted.
+
+Use `true`/`false`, not `1`/`0`: `0` is not read as false but as a file path, and every request fails.
+
+Put the credentials in `OPENSEARCH_USERNAME` and `OPENSEARCH_PASSWORD`, not in the URL
+(`https://user:pass@search.example.com`). The package sends them in the `Authorization` header only. A URL is copied
+into far more places than a header — config dumps, debug output, error trackers, and the connection-error messages of
+HTTP clients that don't redact it — so credentials in the URL leak much more easily.
+
 ## Basic usage
 
 ### Setting up the model
@@ -800,6 +834,10 @@ User::opensearch()
     ->exists();
 ```
 
+`delete()` refuses an index name that OpenSearch would expand to several indices — one containing a wildcard (`*`) or a
+comma, or `_all` — and throws an `InvalidIndexNameException` instead: OpenSearch deletes every matching index by
+default. You can still search a pattern such as `logs-*` by returning it from `openSearchIndexName()`.
+
 ### Documents
 
 ```php
@@ -852,6 +890,11 @@ try {
 The `error` reasons OpenSearch returns can quote the rejected field values, so treat `getFailedItems()` and
 `getResponse()` like the documents themselves before logging them.
 
+The same applies to the exceptions of the underlying `opensearch-php` client, which the package lets through
+unchanged — for example when `create()` with a single id, `createOrUpdate()` or a search is rejected. Their message is
+OpenSearch's error reason, which can quote a document value or a search term
+(`failed to parse field [age] of type [long] in document with id '1'. Preview of field's value: '...'`).
+
 ### Lazy Loading Relationship
 
 The methods `createAll`, `create`, and `createOrUpdate` all accept a function as a second parameter to allow you to lazy 
@@ -884,8 +927,8 @@ $health = app(OpenSearchHealth::class);
 |---|---|
 | `isReachable(): bool` | Whether the cluster answers a ping. Never throws: a connection failure, timeout or HTTP error (e.g. wrong credentials) returns `false`. |
 | `cluster(): array` | The raw [cluster health](https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/) response (`status`, `number_of_nodes`, `unassigned_shards`, ...). |
-| `index(string $indexName): array` | One flat array for one index: `index`, `status`, `docs_count` (primary documents), `store_size_in_bytes` (including replicas), `number_of_shards`, `number_of_replicas`, `refresh_interval`, `max_result_window`. A setting not set on the index, so the cluster default applies, is `null`. Throws `OpenSearch\Exception\NotFoundHttpException` when the index doesn't exist. |
-| `report(array $indexNames = []): array` | `reachable`, `cluster`, `version` (the OpenSearch version number) and `indices` (name → `index()` array, or `null` when the index doesn't exist). Never throws when the cluster is down: `reachable` is then `false` and everything else is `null`. |
+| `index(string $indexName): array` | One flat array for one index: `index`, `status`, `docs_count` (primary documents), `store_size_in_bytes` (including replicas), `number_of_shards`, `number_of_replicas`, `refresh_interval`, `max_result_window`. A setting not set on the index, so the cluster default applies, is `null`. Throws `OpenSearch\Exception\NotFoundHttpException` when the index doesn't exist, and `InvalidIndexNameException` for an empty name, `_all`, or a name with a wildcard or a comma, which OpenSearch would answer with the stats of several indices. |
+| `report(array $indexNames = []): array` | `reachable`, `cluster`, `version` (the OpenSearch version number) and `indices` (name → `index()` array, or `null` when the index doesn't exist). Never throws when the cluster is down: `reachable` is then `false` and everything else is `null`. When the cluster answers but refuses or fails a call — a `403` because the user lacks the monitor privileges, a `5xx` — only that part is `null` (`cluster`, `version` or the index) and the rest is still reported. |
 
 Health isn't tied to a model, so the methods take the full index name. For a model's index, resolve it with
 `IndexNameResolver`, which includes the `OPENSEARCH_INDEX_PREFIX`:
@@ -899,9 +942,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health/opensearch', function (OpenSearchHealth $health) {
     $report = $health->report([IndexNameResolver::resolve(new User())]);
 
-    $healthy = $report['reachable'] && $report['cluster']['status'] !== 'red';
+    // cluster is null when the cluster refused the health call, so treat that as unhealthy too.
+    $status = $report['cluster']['status'] ?? null;
+    $healthy = $report['reachable'] && in_array($status, ['green', 'yellow'], true);
 
-    return response()->json($report, $healthy ? 200 : 503);
+    // Return only the status: the full report is for authenticated dashboards (see below).
+    return response()->json(['status' => $status ?? 'unreachable'], $healthy ? 200 : 503);
 });
 ```
 
@@ -927,8 +973,10 @@ A sample `report()` for one index:
 }
 ```
 
-The cluster health response lists node and shard counts, so don't expose it on a public route without restricting
-access.
+`report()` is not redacted: `cluster` is the raw cluster health response, which includes the cluster name (on Amazon
+OpenSearch Service that is `account-id:domain-name`) and node and shard counts, and `indices` lists your index names
+and sizes. It never contains credentials or the host. Return the full report only from a route that requires
+authentication; a public health route should return a status, as in the example above.
 
 ## The client
 

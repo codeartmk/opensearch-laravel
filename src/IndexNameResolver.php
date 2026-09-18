@@ -20,4 +20,17 @@ class IndexNameResolver
     {
         return (string)config('opensearch-laravel.index_prefix', '') . $model->openSearchIndexName();
     }
+
+    /**
+     * Whether the name can only address one index. OpenSearch expands a wildcard, a comma-separated
+     * list or `_all` to every matching index, and an empty name to all of them on most endpoints.
+     * None of those can be a real index name, so a name that fails this is never a single index.
+     *
+     * @param string $indexName
+     * @return bool
+     */
+    public static function isConcrete(string $indexName): bool
+    {
+        return $indexName !== '' && $indexName !== '_all' && strpbrk($indexName, '*,') === false;
+    }
 }
