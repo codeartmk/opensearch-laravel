@@ -868,6 +868,68 @@ User::opensearch()
 The callback is meant for eager loading. Don't use it to reorder or join: `chunkById()` orders by the primary key, and
 an `orderBy()` or a join added in the callback can conflict with its paging.
 
+## Health checks
+
+`Codeart\OpensearchLaravel\OpenSearchHealth` reports on the cluster and on individual indices, for your own health
+endpoints or checks (e.g. a `/health` route or a `spatie/laravel-health` check). Resolve it from the container — it
+uses the same client as the rest of the package:
+
+```php
+use Codeart\OpensearchLaravel\OpenSearchHealth;
+
+$health = app(OpenSearchHealth::class);
+```
+
+| Method | Returns |
+|---|---|
+| `isReachable(): bool` | Whether the cluster answers a ping. Never throws: a connection failure, timeout or HTTP error (e.g. wrong credentials) returns `false`. |
+| `cluster(): array` | The raw [cluster health](https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/) response (`status`, `number_of_nodes`, `unassigned_shards`, ...). |
+| `index(string $indexName): array` | One flat array for one index: `index`, `status`, `docs_count` (primary documents), `store_size_in_bytes` (including replicas), `number_of_shards`, `number_of_replicas`, `refresh_interval`, `max_result_window`. A setting not set on the index, so the cluster default applies, is `null`. Throws `OpenSearch\Exception\NotFoundHttpException` when the index doesn't exist. |
+| `report(array $indexNames = []): array` | `reachable`, `cluster`, `version` (the OpenSearch version number) and `indices` (name → `index()` array, or `null` when the index doesn't exist). Never throws when the cluster is down: `reachable` is then `false` and everything else is `null`. |
+
+Health isn't tied to a model, so the methods take the full index name. For a model's index, resolve it with
+`IndexNameResolver`, which includes the `OPENSEARCH_INDEX_PREFIX`:
+
+```php
+use App\Models\User;
+use Codeart\OpensearchLaravel\IndexNameResolver;
+use Codeart\OpensearchLaravel\OpenSearchHealth;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/health/opensearch', function (OpenSearchHealth $health) {
+    $report = $health->report([IndexNameResolver::resolve(new User())]);
+
+    $healthy = $report['reachable'] && $report['cluster']['status'] !== 'red';
+
+    return response()->json($report, $healthy ? 200 : 503);
+});
+```
+
+A sample `report()` for one index:
+
+```json
+{
+    "reachable": true,
+    "cluster": { "cluster_name": "opensearch-cluster", "status": "green", "number_of_nodes": 2, "...": "..." },
+    "version": "3.0.0",
+    "indices": {
+        "local_users": {
+            "index": "local_users",
+            "status": "green",
+            "docs_count": 1,
+            "store_size_in_bytes": 3566,
+            "number_of_shards": 2,
+            "number_of_replicas": 0,
+            "refresh_interval": "5s",
+            "max_result_window": null
+        }
+    }
+}
+```
+
+The cluster health response lists node and shard counts, so don't expose it on a public route without restricting
+access.
+
 ## The client
 
 The OpenSearch client is built from the `opensearch-laravel` config by `OpensearchClientFactory`, which is registered

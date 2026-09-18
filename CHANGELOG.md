@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Per-environment index names: the new `index_prefix` config key (`OPENSEARCH_INDEX_PREFIX`, default empty) is prepended verbatim to every index name the package uses — in searches, `indices()` and `documents()` — so environments can share one cluster (`local_users`, `staging_users`). It applies on top of `openSearchIndexName()`, including overrides of it. An empty prefix keeps the index names unchanged.
+- `OpenSearchHealth`, a service class for application health endpoints, resolved from the container: `isReachable()` (ping, never throws), `cluster()` (the raw cluster health response), `index($indexName)` (status, document count, store size and the common index settings as one flat array, with `null` for settings left to the cluster default) and `report($indexNames)` (one summary that never throws when the cluster is unreachable). It takes full index names; use `IndexNameResolver::resolve($model)` for a model's prefixed index.
 
 ### Changed
 
