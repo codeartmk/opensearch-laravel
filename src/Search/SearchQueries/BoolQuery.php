@@ -5,6 +5,11 @@ namespace Codeart\OpensearchLaravel\Search\SearchQueries;
 use Codeart\OpensearchLaravel\Exceptions\InvalidSearchParametersException;
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
+/**
+ * A `bool` query: combines Must, Should, MustNot and Filter clauses, each at most once.
+ *
+ * @see https://opensearch.org/docs/latest/query-dsl/compound/bool/
+ */
 class BoolQuery implements OpenSearchQuery
 {
     private const CLAUSES = [Must::class, Should::class, MustNot::class, Filter::class];
@@ -12,8 +17,10 @@ class BoolQuery implements OpenSearchQuery
     private const OPTIONS = ['minimum_should_match', 'boost'];
 
     /**
-     * @param array $parameters Must, Should, MustNot and Filter clauses, plus the optional minimum_should_match and boost keys
-     * @throws InvalidSearchParametersException
+     * @param array<int|string, Must|Should|MustNot|Filter|int|float|string> $parameters Must, Should, MustNot and Filter
+     *        clauses, plus the optional minimum_should_match and boost keys, see make()
+     * @throws InvalidSearchParametersException When an item is not a clause, a string key is neither
+     *                                          minimum_should_match nor boost, or a clause kind appears twice
      */
     public function __construct(
         private readonly array $parameters
@@ -54,7 +61,26 @@ class BoolQuery implements OpenSearchQuery
     }
 
     /**
-     * @throws InvalidSearchParametersException
+     * The clause objects and the two options share one array: clauses as list items (subclasses count,
+     * matched with instanceof), options under their string keys.
+     *
+     * ```php
+     * BoolQuery::make([
+     *     Must::make(Term::make('status', 'active')),
+     *     Should::make([MatchOne::make('title', 'wind'), MatchOne::make('body', 'wind')]),
+     *     'minimum_should_match' => 1,
+     *     'boost' => 1.5,
+     * ]);
+     * ```
+     *
+     * `minimum_should_match` is only sent when a Should clause is present too: without one, OpenSearch would
+     * match nothing, so it is dropped. `boost` is always sent when set. With no clauses and no options the
+     * query is sent as `{"bool": {}}`.
+     *
+     * @param array<int|string, Must|Should|MustNot|Filter|int|float|string> $parameters
+     * @return self
+     * @throws InvalidSearchParametersException When an item is not a clause, a string key is neither
+     *                                          minimum_should_match nor boost, or a clause kind appears twice
      */
     public static function make(array $parameters): self
     {
@@ -75,6 +101,9 @@ class BoolQuery implements OpenSearchQuery
         return null;
     }
 
+    /**
+     * @return array{bool: array{must?: mixed, should?: mixed, must_not?: mixed, filter?: mixed, minimum_should_match?: int|float|string, boost?: int|float|string}|\stdClass}
+     */
     public function toOpenSearchQuery(): array
     {
         $resulting = [

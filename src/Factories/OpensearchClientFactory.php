@@ -5,6 +5,10 @@ namespace Codeart\OpensearchLaravel\Factories;
 use OpenSearch\Client;
 use OpenSearch\GuzzleClientFactory;
 
+/**
+ * The only place a Client is built, and the only class that reads the package config. Bound as a
+ * singleton, so swapping it in the container changes what every Model::opensearch() call talks to.
+ */
 class OpensearchClientFactory
 {
     private ?Client $client = null;
@@ -27,6 +31,8 @@ class OpensearchClientFactory
 
     /**
      * The Guzzle request options the client is built with.
+     *
+     * @return array{base_uri: mixed, verify: mixed, auth?: array{0: string, 1: string}}
      */
     private function options(): array
     {

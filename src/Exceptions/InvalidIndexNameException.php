@@ -9,6 +9,10 @@ namespace Codeart\OpensearchLaravel\Exceptions;
  */
 class InvalidIndexNameException extends \InvalidArgumentException implements OpenSearchException
 {
+    /**
+     * @param string $index The rejected index name
+     * @param string $operation What was attempted, used to start the message, e.g. 'Deleting an index'
+     */
     public function __construct(string $index, string $operation)
     {
         parent::__construct(

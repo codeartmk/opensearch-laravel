@@ -11,6 +11,13 @@ use Codeart\OpensearchLaravel\Search\SearchBuilder;
 use Codeart\OpensearchLaravel\Search\Sort;
 use OpenSearch\Client;
 
+/**
+ * Builds a search request against the model's index and sends it with get().
+ *
+ * search() sets the query and sort, aggregations() the aggregations; size(), from(), source(), highlight()
+ * and trackTotalHits() shape the response and are only sent when called. Every setter replaces what an
+ * earlier call set.
+ */
 class OpenSearchBuilder
 {
     private SearchBuilder $searchBuilder;
@@ -21,6 +28,10 @@ class OpenSearchBuilder
     private ?array $highlight = null;
     private bool|int|null $trackTotalHits = null;
 
+    /**
+     * @param Client $client The client the search is sent with
+     * @param OpenSearchable $model The model whose index is searched
+     */
     public function __construct(
         private readonly Client $client,
         private readonly OpenSearchable $model
@@ -29,9 +40,15 @@ class OpenSearchBuilder
     }
 
     /**
-     * @param array $parameters One Query and/or one Sort
+     * Sets the query and the sort of the request, replacing an earlier search() call.
+     *
+     * Order doesn't matter. Nothing is wrapped implicitly: a bare BoolQuery or query type has to be
+     * put in a Query first. The previous search is only replaced once the new one is valid.
+     *
+     * @param array<array-key, Query|Sort> $parameters One Query and/or one Sort, e.g. [Query::make([...]), Sort::make([...])]
      * @return $this
-     * @throws InvalidSearchParametersException
+     * @throws InvalidSearchParametersException When the array is empty, has more than two items, has an item
+     *                                          that is neither a Query nor a Sort, or has two of the same kind
      */
     public function search(array $parameters): self
     {
@@ -83,9 +100,13 @@ class OpenSearchBuilder
     }
 
     /**
-     * @param Aggregation|Aggregation[] $parameters
+     * Sets the aggregations of the request, sent under `aggs`, replacing an earlier aggregations() call.
+     * Every level is built and validated here, so errors surface now rather than at get().
+     *
+     * @param Aggregation|array<array-key, Aggregation> $parameters One aggregation, or several siblings
      * @return $this
-     * @throws InvalidAggregationParametersException
+     * @throws InvalidAggregationParametersException When the list is empty, has an item that isn't an Aggregation,
+     *                                               or has two aggregations with the same name at one level
      */
     public function aggregations(Aggregation|array $parameters): self
     {
@@ -97,6 +118,9 @@ class OpenSearchBuilder
     /**
      * The number of hits to return. Only sent when called, so OpenSearch's default of 10 applies otherwise.
      * Call `size(0)` for aggregation-only searches.
+     *
+     * @param int $size The maximum number of hits to return
+     * @return $this
      */
     public function size(int $size): self
     {
@@ -107,6 +131,9 @@ class OpenSearchBuilder
 
     /**
      * Skips the first `$from` hits. `from + size` can't exceed the index's max_result_window (10000 by default).
+     *
+     * @param int $from The number of hits to skip
+     * @return $this
      */
     public function from(int $from): self
     {
@@ -116,8 +143,12 @@ class OpenSearchBuilder
     }
 
     /**
-     * @param array|bool|string $source A field or list of fields to return, ['includes' => [...], 'excludes' => [...]],
-     *                                  or false to leave out the source
+     * Chooses which parts of each hit's `_source` are returned, sent as `_source`.
+     *
+     * @param string|list<string>|array{includes?: list<string>, excludes?: list<string>}|bool $source
+     *        A field or list of fields to return (wildcards allowed), ['includes' => [...], 'excludes' => [...]],
+     *        or false to leave out the source
+     * @return $this
      */
     public function source(array|bool|string $source): self
     {
@@ -127,8 +158,16 @@ class OpenSearchBuilder
     }
 
     /**
-     * @param array $fields Field names, or field name => highlight options, e.g. ['title', 'body' => ['fragment_size' => 50]]
-     * @param array $options Top-level highlight options, e.g. ['pre_tags' => ['<em>'], 'post_tags' => ['</em>']]
+     * Highlights the matches in the given fields, sent as `highlight`.
+     *
+     * The two forms of `$fields` can be mixed: a list item is a field name highlighted with the default options
+     * (sent as `{}`), a string key is a field name mapped to its own options.
+     *
+     * @param array<int|string, string|array<string, mixed>> $fields Field names, or field name => highlight options,
+     *                                                           e.g. ['title', 'body' => ['fragment_size' => 50]]
+     * @param array<string, mixed> $options Top-level highlight options, e.g. ['pre_tags' => ['<em>'], 'post_tags' => ['</em>']].
+     *                                      A `fields` key here is replaced by `$fields`.
+     * @return $this
      */
     public function highlight(array $fields, array $options = []): self
     {
@@ -153,7 +192,11 @@ class OpenSearchBuilder
     }
 
     /**
+     * Controls how accurately `hits.total` is counted, sent as `track_total_hits`. Without it OpenSearch
+     * counts accurately up to 10000.
+     *
      * @param bool|int $trackTotalHits true to count every hit, false to skip counting, or the number to count up to
+     * @return $this
      */
     public function trackTotalHits(bool|int $trackTotalHits = true): self
     {
@@ -162,6 +205,12 @@ class OpenSearchBuilder
         return $this;
     }
 
+    /**
+     * Sends the search and returns the raw response. Without search() and aggregations() the body is empty,
+     * which matches every document.
+     *
+     * @return array<string, mixed> The OpenSearch response as is (`took`, `hits`, `aggregations`, ...); nothing is hydrated
+     */
     public function get(): array
     {
         $parameters = [

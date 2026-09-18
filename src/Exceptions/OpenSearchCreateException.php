@@ -14,7 +14,7 @@ class OpenSearchCreateException extends \Exception implements OpenSearchExceptio
 
     /**
      * @param string $index The index the bulk request was sent to
-     * @param array $response The raw bulk response of the failing request
+     * @param array<string, mixed> $response The raw bulk response of the failing request
      * @param int $indexedCount Documents indexed successfully before the exception, including the successes in the failing request
      */
     public function __construct(
@@ -40,6 +40,8 @@ class OpenSearchCreateException extends \Exception implements OpenSearchExceptio
     /**
      * The rejected documents of the failing request, each as ['_id' => ..., 'status' => ..., 'error' => [...]].
      * The error reasons can quote document values, so treat them like the documents themselves.
+     *
+     * @return list<array{_id: mixed, status: mixed, error: array<string, mixed>}>
      */
     public function getFailedItems(): array
     {
@@ -57,6 +59,8 @@ class OpenSearchCreateException extends \Exception implements OpenSearchExceptio
 
     /**
      * The raw bulk response of the failing request.
+     *
+     * @return array<string, mixed>
      */
     public function getResponse(): array
     {

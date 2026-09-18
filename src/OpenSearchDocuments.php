@@ -6,10 +6,18 @@ use Codeart\OpensearchLaravel\Exceptions\ModelException;
 use Codeart\OpensearchLaravel\Exceptions\OpenSearchCreateException;
 use OpenSearch\Client;
 
+/**
+ * Writes a model's rows to its index and deletes documents from it. Indexing is always explicit: nothing
+ * listens to model events. A document's `_id` is the model's primary key.
+ */
 class OpenSearchDocuments
 {
     private string $indexName;
 
+    /**
+     * @param Client $client The client the requests are sent with
+     * @param OpenSearchable $model The model whose rows are indexed; its query() starts every lookup
+     */
     public function __construct(
         private readonly Client $client,
         private readonly OpenSearchable $model
@@ -29,7 +37,7 @@ class OpenSearchDocuments
      * @param callable|null $callable For eager loading relationships. Ex. fn($query) => $query->with('relationship')
      * @param int $size The size of the chunks when indexing models ( default = 100 )
      *
-     * @return bool
+     * @return bool Always true; a failure is reported by the exception
      * @throws OpenSearchCreateException When a bulk request reports errors. Earlier chunks stay indexed; the exception's getIndexedCount() says how many documents made it in.
      */
     public function createAll(?callable $callable = null, int $size = 100): bool
@@ -56,11 +64,11 @@ class OpenSearchDocuments
      * An array of ids is sent as bulk `index` actions in chunks of `$size`, which overwrite existing documents.
      * The callback is meant for eager loading, not for reordering or joins.
      *
-     * @param int|string|array $ids The primary key, or keys, of the models you want to create
+     * @param int|string|array<int, int|string> $ids The primary key, or keys, of the models you want to create
      * @param callable|null $callable For eager loading relationships. Ex. fn($query) => $query->with('relationship')
      * @param int $size The chunk size for the bulk update ( default = 100 )
      *
-     * @return bool
+     * @return bool Always true; a failure is reported by an exception
      * @throws ModelException When a single id is given and no model has it
      * @throws OpenSearchCreateException When a bulk request reports errors. Earlier chunks stay indexed.
      */
@@ -101,11 +109,14 @@ class OpenSearchDocuments
     }
 
     /**
+     * Writes one model's document, creating it or overwriting the fields it sends (an upsert with
+     * `doc_as_upsert`). The index is refreshed, so the change is searchable when this returns.
+     *
      * @param int|string $id The primary key of the model that needs to be created or updated
      * @param callable|null $callable For eager loading relationships. Ex. fn($query) => $query->with('relationship')
      *
-     * @return array
-     * @throws ModelException
+     * @return array<string, mixed> The raw update response
+     * @throws ModelException When no model has the id
      */
     public function createOrUpdate(int|string $id, ?callable $callable = null): array
     {
@@ -136,9 +147,11 @@ class OpenSearchDocuments
     }
 
     /**
+     * Deletes one document by id. The model itself isn't looked up, so this also works after the row is gone.
+     *
      * @param int|string $id The primary key of the model whose document needs to be deleted
      *
-     * @return array
+     * @return array<string, mixed> The raw delete response
      */
     public function delete(int|string $id): array
     {
@@ -153,7 +166,7 @@ class OpenSearchDocuments
     /**
      * Sends one bulk request with an `index` action per model.
      *
-     * @param iterable $entities
+     * @param iterable<OpenSearchable> $entities The models to index
      * @param int $indexedBefore Documents indexed by earlier requests of the same run, reported if this one fails
      *
      * @return int The number of documents this request indexed
@@ -186,6 +199,8 @@ class OpenSearchDocuments
 
     /**
      * Counts the items of a bulk response that carry no error. A request can partially succeed.
+     *
+     * @param array<string, mixed> $results The bulk response
      */
     private function countSuccessfulItems(array $results): int
     {

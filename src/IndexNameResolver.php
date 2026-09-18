@@ -2,6 +2,10 @@
 
 namespace Codeart\OpensearchLaravel;
 
+/**
+ * Turns a model into the name of its index, with the configured prefix, and tells whether a name
+ * can only address a single index.
+ */
 class IndexNameResolver
 {
     /**

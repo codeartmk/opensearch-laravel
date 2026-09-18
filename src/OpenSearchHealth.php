@@ -17,6 +17,9 @@ use Psr\Http\Client\ClientExceptionInterface;
  */
 class OpenSearchHealth
 {
+    /**
+     * @param OpensearchClientFactory $clientFactory The container's factory; the client is taken from it on each call
+     */
     public function __construct(
         private readonly OpensearchClientFactory $clientFactory
     ){}
@@ -54,7 +57,7 @@ class OpenSearchHealth
      * The name is used as given — for a model's index, pass `IndexNameResolver::resolve($model)`
      * so the configured prefix is included.
      *
-     * @param string $indexName
+     * @param string $indexName The full index name or alias, prefix included
      * @return array{
      *     index: string,
      *     status: string,
@@ -110,13 +113,14 @@ class OpenSearchHealth
      * The cluster health response includes the cluster name and node and shard counts, and the
      * indices are listed by name, so don't return the whole report from a public route.
      *
-     * @param string[] $indexNames
+     * @param string[] $indexNames Full index names to report on, prefix included
      * @return array{
      *     reachable: bool,
      *     cluster: array<string, mixed>|null,
      *     version: string|null,
      *     indices: array<string, array<string, mixed>|null>,
      * }
+     * @throws InvalidIndexNameException When one of the names is empty, contains a wildcard or a comma, or is `_all`
      */
     public function report(array $indexNames = []): array
     {
