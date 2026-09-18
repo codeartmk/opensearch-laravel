@@ -30,4 +30,16 @@ class RegexpTest extends TestCase
             ],
         ], Regexp::make('name', 'jo.*n', true)->toOpenSearchQuery());
     }
+
+    public function testAcceptsCaseInsensitiveAsANamedArgument()
+    {
+        $this->assertSame([
+            'regexp' => [
+                'name' => [
+                    'value' => 'jo.*n',
+                    'case_insensitive' => true,
+                ],
+            ],
+        ], Regexp::make('name', 'jo.*n', caseInsensitive: true)->toOpenSearchQuery());
+    }
 }

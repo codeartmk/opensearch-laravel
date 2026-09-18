@@ -14,29 +14,27 @@ class Regexp implements SearchQueryType, OpenSearchQuery
     /**
      * @param string $field The field to search
      * @param string $value The regular expression, in Lucene syntax; it is not analyzed
-     * @param bool $casInsensitive Whether to match regardless of case. Always sent; false is also OpenSearch's default.
-     *                             Note the spelling: Prefix and Wildcard call it caseInsensitive
+     * @param bool $caseInsensitive Whether to match regardless of case. Always sent; false is also OpenSearch's default.
      */
     public function __construct(
         private readonly string $field,
         private readonly string $value,
-        private readonly bool $casInsensitive
+        private readonly bool $caseInsensitive
     ){}
 
     /**
      * @param string $field The field to search
      * @param string $value The regular expression, in Lucene syntax; it is not analyzed
-     * @param bool $casInsensitive Whether to match regardless of case. Always sent; false is also OpenSearch's default.
-     *                             Note the spelling: Prefix and Wildcard call it caseInsensitive
+     * @param bool $caseInsensitive Whether to match regardless of case. Always sent; false is also OpenSearch's default.
      * @return self
      */
     public static function make(
         string $field,
         string $value,
-        bool $casInsensitive = false
+        bool $caseInsensitive = false
     ): self
     {
-        return new self($field, $value, $casInsensitive);
+        return new self($field, $value, $caseInsensitive);
     }
 
     /**
@@ -48,7 +46,7 @@ class Regexp implements SearchQueryType, OpenSearchQuery
             'regexp' => [
                 $this->field => [
                     'value' => $this->value,
-                    'case_insensitive' => $this->casInsensitive
+                    'case_insensitive' => $this->caseInsensitive
                 ]
             ]
         ];

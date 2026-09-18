@@ -141,6 +141,20 @@ BoolQuery::make([Must::make(...), 'minimum_should_match' => Filter::make(...)]);
 BoolQuery::make([Must::make(...), Filter::make(...)]);
 ```
 
+### `Regexp`: `casInsensitive` renamed to `caseInsensitive`
+
+The third parameter of `Regexp::make()` (and of its constructor) is now spelled `caseInsensitive`, like on `Prefix`
+and `Wildcard`. Only calls that name the argument are affected; positional calls and the query produced are
+unchanged.
+
+```php
+// 1.x
+Regexp::make('name', 'jo.*n', casInsensitive: true);
+
+// 2.0
+Regexp::make('name', 'jo.*n', caseInsensitive: true);
+```
+
 ### Exceptions of the underlying client
 
 The client is now built with opensearch-php's `GuzzleClientFactory` instead of the deprecated `ClientBuilder`
