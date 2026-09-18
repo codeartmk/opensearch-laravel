@@ -2,6 +2,7 @@
 
 namespace Codeart\OpensearchLaravel\Aggregations\Types;
 
+use Codeart\OpensearchLaravel\Exceptions\InvalidAggregationParametersException;
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
 /**
@@ -18,29 +19,47 @@ use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 class Composite implements OpenSearchQuery, AggregationType
 {
     /**
-     * @param array<string, string|AggregationType|array<string, mixed>> $sources Source name => field name (a terms
-     *                                                                            source), aggregation such as Histogram
-     *                                                                            or DateHistogram, or raw source array.
-     *                                                                            The order of the sources is kept
+     * @param non-empty-array<string, string|AggregationType|array<string, mixed>> $sources Source name => field name
+     *        (a terms source), aggregation such as Histogram or DateHistogram, or raw source array. The order of the
+     *        sources is kept
      * @param int $size The number of buckets per page. Always sent; 10 is also OpenSearch's default
      * @param array<string, mixed>|null $after The `after_key` of the previous page, source name => value. Null leaves
      *                                         it out so the first page is returned
+     * @throws InvalidAggregationParametersException When the list is empty or has a source that is not a string, an
+     *                                               array or an aggregation (AggregationType and OpenSearchQuery)
      */
     public function __construct(
         private readonly array $sources,
         private readonly int $size,
         private readonly ?array $after
-    ){}
+    ){
+        // OpenSearch rejects "sources": [] ("Failed to build [composite] after last required field arrived").
+        if (!count($sources)) {
+            throw new InvalidAggregationParametersException('Composite requires at least one source.');
+        }
+
+        foreach ($sources as $name => $source) {
+            if (!is_string($source) && !is_array($source)
+                && !($source instanceof AggregationType && $source instanceof OpenSearchQuery)) {
+                throw new InvalidAggregationParametersException(sprintf(
+                    'Composite accepts only a field name, an aggregation or an array as a source, %s given for %s.',
+                    get_debug_type($source),
+                    var_export($name, true)
+                ));
+            }
+        }
+    }
 
     /**
-     * @param array<string, string|AggregationType|array<string, mixed>> $sources Source name => field name (a terms
-     *                                                                            source), aggregation such as Histogram
-     *                                                                            or DateHistogram, or raw source array.
-     *                                                                            The order of the sources is kept
+     * @param non-empty-array<string, string|AggregationType|array<string, mixed>> $sources Source name => field name
+     *        (a terms source), aggregation such as Histogram or DateHistogram, or raw source array. The order of the
+     *        sources is kept
      * @param int $size The number of buckets per page. Always sent; 10 is also OpenSearch's default
      * @param array<string, mixed>|null $after The `after_key` of the previous page, source name => value. Null leaves
      *                                         it out so the first page is returned
      * @return self
+     * @throws InvalidAggregationParametersException When the list is empty or has a source that is not a string, an
+     *                                               array or an aggregation (AggregationType and OpenSearchQuery)
      */
     public static function make(array $sources, int $size = 10, ?array $after = null): self
     {

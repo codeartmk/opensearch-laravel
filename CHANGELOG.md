@@ -52,6 +52,7 @@ upgrading from 1.x.
 
 ### Fixed
 
+- `DisMax`, `FunctionScore` and the `Filters` and `Composite` aggregations now check the items of the list they take when they are constructed. An item of the wrong kind used to fail with a PHP `Error` ("Call to a member function toOpenSearchQuery() on ...") or `TypeError` only when the request was built; it now throws the package exception naming the item's type and key — `InvalidSearchParametersException` from `DisMax` (a query that is neither a `SearchQueryType` nor a `BoolQuery`) and `FunctionScore` (a function that is not an array, or a `filter` object that is not a query), `InvalidAggregationParametersException` from `Filters` (a filter that is not a query) and `Composite` (a source that is not a field name, an array or an aggregation). `DisMax`, `Filters` and `Composite` also throw for an empty list, which OpenSearch rejects; `FunctionScore` still accepts an empty list of functions, which OpenSearch accepts. Input that used to build a valid request is unaffected; only code catching `\Error` for these cases sees a different exception.
 - `documents()->create()` with a single id that matches no model now throws `ModelException`, like `createOrUpdate()` does. It used to fail with a PHP error on `null`.
 - When a username is set without a password, the client now sends an empty password. It would have passed `null`, which Guzzle 8 rejects with an `InvalidArgumentException`; this matters now that the password has no default.
 
