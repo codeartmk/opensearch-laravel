@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The package now requires PHP 8.2 or newer, Laravel 12 or 13 (`illuminate/support` and `illuminate/database` `^12.0|^13.0`) and `opensearch-project/opensearch-php` `^2.7`.
 - `guzzlehttp/guzzle` (`^7.8|^8.0`) is now a required dependency. It is the HTTP client the package will use to talk to OpenSearch.
+- `OpensearchClientFactory` now builds the client with opensearch-php's `GuzzleClientFactory` instead of the deprecated `ClientBuilder`, which is removed in opensearch-php 3.0. Guzzle is the HTTP transport, so it is a required dependency. The basic-auth header is only sent when `opensearch-laravel.username` is set, so clusters without the security plugin no longer receive empty credentials.
 - The development dependencies now allow `orchestra/testbench` 10 and 11 and `phpunit/phpunit` 11.5 through 13. The GitHub Actions workflow tests Laravel 12 on PHP 8.2–8.5 and Laravel 13 on PHP 8.3–8.5.
 
 ### Removed
