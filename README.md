@@ -183,8 +183,8 @@ Aggregation::make(
     name: 'categories',
     aggregationType: Terms::make('category'),
     aggregation: [
-        Aggregation::make('average_price', Average::make('price')),
-        Aggregation::make('max_price', Maximum::make('price')),
+        Aggregation::make('average_price', Avg::make('price')),
+        Aggregation::make('max_price', Max::make('price')),
     ]
 );
 ```
@@ -458,7 +458,7 @@ User::opensearch()
 
 [https://opensearch.org/docs/latest/aggregations/metric/average/](https://opensearch.org/docs/latest/aggregations/metric/average/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Average::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Avg::make('taxful_total_price');
 ```
 
 #### Cardinality
@@ -494,22 +494,22 @@ User::opensearch()
 
 [https://opensearch.org/docs/latest/aggregations/metric/maximum/](https://opensearch.org/docs/latest/aggregations/metric/maximum/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Maximum::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Max::make('taxful_total_price');
 ```
 
 #### Minimum
 
 [https://opensearch.org/docs/latest/aggregations/metric/minimum/](https://opensearch.org/docs/latest/aggregations/metric/minimum/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Minimum::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Min::make('taxful_total_price');
 ```
 
-#### Percentile
+#### Percentiles
 
 [https://opensearch.org/docs/latest/aggregations/metric/percentile/](https://opensearch.org/docs/latest/aggregations/metric/percentile/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price');
-\Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price', percents: [50, 95, 99]);
+\Codeart\OpensearchLaravel\Aggregations\Types\Percentiles::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Percentiles::make('taxful_total_price', percents: [50, 95, 99]);
 ```
 
 #### Percentile Ranks

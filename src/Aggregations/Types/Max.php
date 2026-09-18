@@ -4,7 +4,7 @@ namespace Codeart\OpensearchLaravel\Aggregations\Types;
 
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
-class Maximum implements OpenSearchQuery, AggregationType
+class Max implements OpenSearchQuery, AggregationType
 {
     public function __construct(
         private readonly string $field,

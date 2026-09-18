@@ -4,7 +4,7 @@ namespace Codeart\OpensearchLaravel\Aggregations\Types;
 
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
-class Percentile implements OpenSearchQuery, AggregationType
+class Percentiles implements OpenSearchQuery, AggregationType
 {
     public function __construct(
         private readonly string $field,

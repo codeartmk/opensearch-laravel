@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `documents()->create()` now accepts `int|string|array`, and `createOrUpdate()` and `delete()` accept `int|string`, so string and UUID primary keys can be passed. Subclasses of `OpenSearchDocuments` that override these methods must widen their signatures to match.
 - **Breaking:** `OpenSearchCreateException` no longer puts the whole bulk response, JSON-encoded, in its message. The response's per-document errors can quote document values, so they ended up in logs and error trackers. The message is now short and log-safe — the index name, how many documents of the failing chunk were rejected and how many were indexed before the failure — and the details are available through getters: `getFailedItems()` (each rejected document as `_id`, `status` and `error`), `getIndexedCount()` (documents indexed before the exception, including earlier chunks, which stay in the index) and `getResponse()` (the raw bulk response of the failing request). The constructor changed to `__construct(string $index, array $response, int $indexedCount)`; code that parsed the old message must switch to the getters.
 - **Breaking:** `builder()->get()` no longer sends `size` unless `size()` was called, so OpenSearch's default of 10 hits applies — the same "only when called" rule `from()`, `source()`, `highlight()` and `trackTotalHits()` already follow. Searches used to return up to 10000 hits implicitly; code that relied on that now silently gets 10, so call `->size(...)` explicitly wherever you need more. Aggregation-only searches should still call `->size(0)`. `get()` no longer throws `InvalidSearchParametersException` when `from()` is used without `size()`: that guard only existed because the old default of 10000 plus any offset exceeded the default result window.
+- **Breaking:** four aggregation classes in `Codeart\OpensearchLaravel\Aggregations\Types` were renamed so that every class name matches its OpenSearch DSL key, like the rest of the package. The queries they produce are unchanged, and no aliases for the old names are provided — search and replace them:
+
+  | Old class | New class | DSL key |
+  |---|---|---|
+  | `Average` | `Avg` | `avg` |
+  | `Minimum` | `Min` | `min` |
+  | `Maximum` | `Max` | `max` |
+  | `Percentile` | `Percentiles` | `percentiles` |
 
 ### Fixed
 

@@ -4,7 +4,7 @@ namespace Codeart\OpensearchLaravel\Aggregations\Types;
 
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
-class Average implements OpenSearchQuery, AggregationType
+class Min implements OpenSearchQuery, AggregationType
 {
     public function __construct(
         private readonly string $field,
@@ -18,7 +18,7 @@ class Average implements OpenSearchQuery, AggregationType
     public function toOpenSearchQuery(): array
     {
         return [
-            'avg' => [
+            'min' => [
                 'field' => $this->field,
             ]
         ];
