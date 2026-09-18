@@ -18,6 +18,7 @@ upgrading from 1.x.
 - `OpenSearchCreateException` has the getters `getFailedItems()` (each rejected document as `_id`, `status` and `error`), `getIndexedCount()` (documents indexed before the exception, including earlier chunks, which stay in the index) and `getResponse()` (the raw bulk response of the failing request). See **Changed** for the message.
 - Every class and public method in `src/` has a complete PHPDoc block, with array shapes, `@throws` and links to the matching OpenSearch documentation.
 - `UPGRADE.md`, a guide to upgrading from 1.x.
+- `BucketSort` can truncate without sorting: its `field` is now optional, and without it `sort` is left out, so `BucketSort::make(size: 3)` keeps the first three buckets in the parent aggregation's order (`from` works the same way). Existing calls produce the same query as before. Giving `order` without a field, or no field, no `size` and no `from` above 0 — a `bucket_sort` OpenSearch rejects as doing nothing — throws `InvalidAggregationParametersException`.
 
 ### Changed
 

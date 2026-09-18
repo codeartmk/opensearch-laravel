@@ -783,7 +783,12 @@ User::opensearch()
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('company_id');
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('total_sales', order: 'desc', size: 5, from: 0);
+// Without a field, only truncates: keeps 3 buckets in the parent's order
+\Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make(size: 3);
 ```
+
+The field is optional when `size` or `from` is given. `order` without a field, or no field, `size` or `from` at all,
+throws `InvalidAggregationParametersException`.
 
 #### Cumulative Sum
 
