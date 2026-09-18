@@ -98,4 +98,71 @@ class BucketSortTest extends TestCase
 
         new BucketSort();
     }
+
+    public function testBuildsABucketSortWithTheSmallestValidSize()
+    {
+        $this->assertSame([
+            'bucket_sort' => [
+                'sort' => ['_key'],
+                'size' => 1,
+            ],
+        ], BucketSort::make('_key', size: 1)->toOpenSearchQuery());
+    }
+
+    public function testBuildsABucketSortWithASizeOfOneAndAZeroFrom()
+    {
+        $this->assertSame([
+            'bucket_sort' => [
+                'size' => 1,
+                'from' => 0,
+            ],
+        ], BucketSort::make(size: 1, from: 0)->toOpenSearchQuery());
+    }
+
+    public function testThrowsWhenSizeIsZero()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+        $this->expectExceptionMessage('BucketSort size must be at least 1, 0 given.');
+
+        BucketSort::make(size: 0);
+    }
+
+    public function testThrowsWhenSizeIsZeroWithAField()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+        $this->expectExceptionMessage('BucketSort size must be at least 1, 0 given.');
+
+        BucketSort::make('_key', size: 0);
+    }
+
+    public function testThrowsWhenSizeIsNegative()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+        $this->expectExceptionMessage('BucketSort size must be at least 1, -1 given.');
+
+        BucketSort::make('_key', size: -1);
+    }
+
+    public function testThrowsWhenFromIsNegative()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+        $this->expectExceptionMessage('BucketSort from must be 0 or more, -1 given.');
+
+        BucketSort::make(from: -1);
+    }
+
+    public function testThrowsWhenFromIsNegativeWithASize()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+        $this->expectExceptionMessage('BucketSort from must be 0 or more, -1 given.');
+
+        BucketSort::make('_key', size: 2, from: -1);
+    }
+
+    public function testThrowsForAnInvalidSizeGivenToTheConstructor()
+    {
+        $this->expectException(InvalidAggregationParametersException::class);
+
+        new BucketSort(size: 0);
+    }
 }
