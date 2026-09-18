@@ -24,6 +24,8 @@ class OpenSearchDocumentsTest extends TestCase
 
     public function setUp(): void
     {
+        parent::setUp();
+
         $this->mockedClient = Mockery::mock(Client::class);
 
         $this->clientFactory = $this->createMock(OpensearchClientFactory::class);
@@ -140,5 +142,58 @@ class OpenSearchDocumentsTest extends TestCase
         $results = $os->delete(1);
 
         $this->assertEquals($expectedResults, $results);
+    }
+
+    public function testCreateAllTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = 'local_' . $this->mockOpenSearchable->openSearchIndexName();
+        $sentBodies = [];
+
+        $this->mockedClient->shouldReceive('bulk')
+            ->andReturnUsing(function ($params) use (&$sentBodies) {
+                $sentBodies[] = $params['body'];
+
+                return [];
+            });
+
+        $os->createAll();
+
+        $this->assertCount(1, $sentBodies);
+        $this->assertSame(['_index' => $indexName, '_id' => 1], $sentBodies[0][0]['index']);
+        $this->assertSame(['_index' => $indexName, '_id' => 1], $sentBodies[0][2]['index']);
+        $this->assertSame(['_index' => $indexName, '_id' => 1], $sentBodies[0][4]['index']);
+    }
+
+    public function testCreateTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+
+        $this->mockedClient->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(fn($params) => $params['index'] === 'local_' . $this->mockOpenSearchable->openSearchIndexName()))
+            ->andReturn([]);
+
+        $this->assertTrue($os->create(1));
+    }
+
+    public function testCreateOrUpdateAndDeleteTargetThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = 'local_' . $this->mockOpenSearchable->openSearchIndexName();
+
+        $this->mockedClient->shouldReceive('update')
+            ->andReturnUsing(fn($params) => $params);
+        $this->mockedClient->shouldReceive('delete')
+            ->andReturnUsing(fn($params) => $params);
+
+        $this->assertSame($indexName, $os->createOrUpdate(1)['index']);
+        $this->assertSame($indexName, $os->delete(1)['index']);
     }
 }

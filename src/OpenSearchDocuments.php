@@ -15,7 +15,7 @@ class OpenSearchDocuments
         private readonly OpenSearchable $model
     )
     {
-        $this->indexName = $this->model->openSearchIndexName();
+        $this->indexName = IndexNameResolver::resolve($this->model);
     }
 
     /**

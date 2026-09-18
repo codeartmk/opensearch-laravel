@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Per-environment index names: the new `index_prefix` config key (`OPENSEARCH_INDEX_PREFIX`, default empty) is prepended verbatim to every index name the package uses — in searches, `indices()` and `documents()` — so environments can share one cluster (`local_users`, `staging_users`). It applies on top of `openSearchIndexName()`, including overrides of it. An empty prefix keeps the index names unchanged.
+
 ### Changed
 
 - The package now requires PHP 8.2 or newer, Laravel 12 or 13 (`illuminate/support` and `illuminate/database` `^12.0|^13.0`) and `opensearch-project/opensearch-php` `^2.7`.

@@ -13,7 +13,7 @@ class OpenSearchIndices
         private readonly Client $client,
         private readonly OpenSearchable $model
     ){
-        $this->indexName = $this->model->openSearchIndexName();
+        $this->indexName = IndexNameResolver::resolve($this->model);
     }
 
     /**

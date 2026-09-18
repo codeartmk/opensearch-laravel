@@ -14,9 +14,9 @@ use Codeart\OpensearchLaravel\Search\SearchQueries\BoolQuery;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Must;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne;
 use Codeart\OpensearchLaravel\Search\Sort;
+use Codeart\OpensearchLaravel\Tests\TestCase;
 use Mockery;
 use OpenSearch\Client;
-use PHPUnit\Framework\TestCase;
 
 class OpenSearchBuilderTest extends TestCase
 {
@@ -24,6 +24,8 @@ class OpenSearchBuilderTest extends TestCase
 
     public function setUp(): void
     {
+        parent::setUp();
+
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')
             ->andReturnUsing(fn($params) => $params);
@@ -33,6 +35,13 @@ class OpenSearchBuilderTest extends TestCase
             ->andReturn('posts');
 
         $this->builder = new OpenSearchBuilder($client, $model);
+    }
+
+    public function testTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $this->assertSame('local_posts', $this->builder->get()['index']);
     }
 
     public function testSendsTheSameRequestAsBeforeWhenNoNewOptionsAreUsed()

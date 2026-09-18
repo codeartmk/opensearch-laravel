@@ -7,10 +7,10 @@ use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
 use Codeart\OpensearchLaravel\OpenSearchable;
 use Codeart\OpensearchLaravel\OpenSearchIndices;
 use Codeart\OpensearchLaravel\Tests\Mocks\MockOpenSearchable;
+use Codeart\OpensearchLaravel\Tests\TestCase;
 use Mockery;
 use OpenSearch\Client;
 use PHPUnit\Framework\MockObject\Exception;
-use PHPUnit\Framework\TestCase;
 
 class OpenSearchIndicesTest extends TestCase {
 
@@ -20,6 +20,8 @@ class OpenSearchIndicesTest extends TestCase {
 
     public function setUp(): void
     {
+        parent::setUp();
+
         $this->mockedClient = Mockery::mock(Client::class);
         $this->mockedClient->shouldReceive('indices->create')
             ->andReturnUsing(fn($params) => $params);
@@ -78,6 +80,53 @@ class OpenSearchIndicesTest extends TestCase {
         ];
 
         $this->assertEquals($response, $os->create($config));
+    }
+
+    /**
+     * @throws IndexAlreadyExistException
+     */
+    public function testCreateTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $os = new OpenSearchIndices($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = 'local_' . $this->mockOpenSearchable->openSearchIndexName();
+
+        $this->mockedClient->shouldReceive('indices->exists')
+            ->once()
+            ->with(['index' => $indexName])
+            ->andReturn(false);
+
+        $this->assertSame($indexName, $os->create()['index']);
+    }
+
+    public function testDeleteTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $os = new OpenSearchIndices($this->clientFactory->createClient(), $this->mockOpenSearchable);
+
+        $this->mockedClient->shouldReceive('indices->delete')
+            ->andReturnUsing(fn($params) => $params);
+
+        $this->assertEquals(
+            ['index' => 'local_' . $this->mockOpenSearchable->openSearchIndexName()],
+            $os->delete()
+        );
+    }
+
+    public function testExistsTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $os = new OpenSearchIndices($this->clientFactory->createClient(), $this->mockOpenSearchable);
+
+        $this->mockedClient->shouldReceive('indices->exists')
+            ->once()
+            ->with(['index' => 'local_' . $this->mockOpenSearchable->openSearchIndexName()])
+            ->andReturn(true);
+
+        $this->assertTrue($os->exists());
     }
 
     protected function tearDown(): void

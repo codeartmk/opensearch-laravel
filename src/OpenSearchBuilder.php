@@ -174,7 +174,7 @@ class OpenSearchBuilder
         }
 
         $parameters = [
-            "index" => $this->model->openSearchIndexName(),
+            "index" => IndexNameResolver::resolve($this->model),
             "size" => $this->size,
             "body" => [
                 ...(isset($this->searchBuilder) ? $this->searchBuilder->toOpenSearchQuery() : []),

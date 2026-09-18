@@ -94,6 +94,28 @@ class User extends Authenticatable implements OpenSearchable
 }
 ```
 
+### Per-environment indices
+
+When several environments share one OpenSearch cluster, set `OPENSEARCH_INDEX_PREFIX` so each one gets its own
+indices:
+
+```dotenv
+# local .env
+OPENSEARCH_INDEX_PREFIX=local_
+
+# staging .env
+OPENSEARCH_INDEX_PREFIX=staging_
+```
+
+With those, `User::opensearch()` reads and writes `local_users` locally and `staging_users` on staging. The prefix is
+prepended verbatim, so include the separator yourself. It applies to every index the package touches — searches,
+`indices()` and `documents()` — on top of whatever `openSearchIndexName()` returns, including your own override of it.
+The default is an empty prefix, which keeps the plain index names.
+
+The prefix is the `index_prefix` key in `config/opensearch-laravel.php`. It must follow OpenSearch's
+[index naming rules](https://opensearch.org/docs/latest/api-reference/index-apis/create-index/#index-naming-restrictions)
+(lowercase, not starting with `_`, `-` or `+`, no spaces), otherwise OpenSearch rejects the request.
+
 ## Building queries and aggregations
 
 Once the model is ready you can start building your queries and aggregation through the `opensearch` method on the class:

@@ -5,4 +5,5 @@ return [
     'username' => env('OPENSEARCH_USERNAME', 'admin'),
     'password' => env('OPENSEARCH_PASSWORD', 'admin'),
     'ssl_verification' => env('OPENSEARCH_SSL_VERIFICATION', false),
+    'index_prefix' => env('OPENSEARCH_INDEX_PREFIX', ''),
 ];
