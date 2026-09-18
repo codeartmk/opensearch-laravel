@@ -2,11 +2,9 @@
 
 namespace Codeart\OpensearchLaravel\Exceptions;
 
-use JetBrains\PhpStorm\Pure;
-
 class IndexAlreadyExistException extends \Exception implements OpenSearchException
 {
-    #[Pure] public function __construct($index)
+    public function __construct($index)
     {
         $message = "The index:$index already exists.";
         $code = 500;

@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Support for Laravel 10 and 11, which are past end of life, and for PHP 8.1. Apps on those versions will stay on 1.x.
+- **Breaking:** the exception classes `IndexException`, `IndexDoesntExistException`, `ModelConfigurationException` and `SearchFailedException` in `Codeart\OpensearchLaravel\Exceptions` were deleted. The package never threw them, so no behaviour changes, but `catch` blocks or `use` statements that name them must be removed. To catch any exception from the package, catch the `OpenSearchException` interface.
+- The `#[Pure]` attributes on `ModelException` and `IndexAlreadyExistException`. They came from `jetbrains/phpstorm-attributes`, which was never a dependency.
 
 ## [1.1.0] - 2026-09-17
 
