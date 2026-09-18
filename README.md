@@ -824,6 +824,25 @@ work as well. `create()` with a single id and `createOrUpdate()` throw a `ModelE
 [`chunkById()`](https://laravel.com/docs/eloquent#chunking-results), so rows that are deleted or added while it runs
 don't cause other rows to be skipped.
 
+When OpenSearch rejects documents in a bulk request, `createAll()` and `create()` with an array of ids throw an
+`OpenSearchCreateException` and stop. Chunks sent before the failure stay indexed. The exception message only holds
+counts, so it is safe to log; the details are on the exception:
+
+```php
+use Codeart\OpensearchLaravel\Exceptions\OpenSearchCreateException;
+
+try {
+    User::opensearch()->documents()->createAll();
+} catch (OpenSearchCreateException $e) {
+    $e->getFailedItems();  // [['_id' => '5', 'status' => 400, 'error' => [...]], ...] for the failing chunk
+    $e->getIndexedCount(); // documents indexed before the failure, earlier chunks included
+    $e->getResponse();     // the raw bulk response of the failing request
+}
+```
+
+The `error` reasons OpenSearch returns can quote the rejected field values, so treat `getFailedItems()` and
+`getResponse()` like the documents themselves before logging them.
+
 ### Lazy Loading Relationship
 
 The methods `createAll`, `create`, and `createOrUpdate` all accept a function as a second parameter to allow you to lazy 

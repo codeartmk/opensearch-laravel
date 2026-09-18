@@ -23,6 +23,11 @@ class OpenSearchDocumentsTest extends TestCase
      */
     protected ?MockOpenSearchable $foundModel;
 
+    /**
+     * The chunks the mocked chunkById() hands to its callback, in order. Null means one chunk of three models.
+     */
+    protected ?array $chunks = null;
+
     public function setUp(): void
     {
         parent::setUp();
@@ -47,11 +52,15 @@ class OpenSearchDocumentsTest extends TestCase
         $queryMock = Mockery::mock();
         $queryMock->shouldReceive('chunkById')
             ->andReturnUsing(function ($size, $callback) {
-                $callback([
+                $chunks = $this->chunks ?? [[
                     $this->mockOpenSearchable,
                     $this->mockOpenSearchable,
                     $this->mockOpenSearchable
-                ]);
+                ]];
+
+                foreach ($chunks as $chunk) {
+                    $callback($chunk);
+                }
             });
         $queryMock->shouldReceive('with')
             ->andReturnSelf();
@@ -297,5 +306,127 @@ class OpenSearchDocumentsTest extends TestCase
 
         $this->assertTrue($os->create(1));
         $this->assertTrue($os->create([1]));
+    }
+
+    public function testCreateAllReportsTheFailedItemsOfAPartiallyFailedChunk()
+    {
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = $this->mockOpenSearchable->openSearchIndexName();
+
+        $this->mockedClient->shouldReceive('bulk')
+            ->andReturn($this->bulkResponse($indexName, [201, 400, 400]));
+
+        try {
+            $os->createAll();
+            $this->fail('OpenSearchCreateException was not thrown.');
+        } catch (OpenSearchCreateException $e) {
+            $this->assertSame(
+                "Bulk indexing into '$indexName' failed: 2 of 3 documents in the current chunk were rejected. 1 document was indexed before the failure.",
+                $e->getMessage()
+            );
+            $this->assertSame([
+                ['_id' => '2', 'status' => 400, 'error' => $this->bulkError('2')],
+                ['_id' => '3', 'status' => 400, 'error' => $this->bulkError('3')],
+            ], $e->getFailedItems());
+            $this->assertSame(1, $e->getIndexedCount());
+            $this->assertSame($this->bulkResponse($indexName, [201, 400, 400]), $e->getResponse());
+            $this->assertStringNotContainsString('foobar', $e->getMessage());
+            $this->assertStringNotContainsString('SECRET_FIELD_VALUE', $e->getMessage());
+        }
+    }
+
+    public function testCreateAllCountsTheDocumentsIndexedByEarlierChunks()
+    {
+        $this->chunks = [
+            [$this->mockOpenSearchable, $this->mockOpenSearchable],
+            [$this->mockOpenSearchable, $this->mockOpenSearchable, $this->mockOpenSearchable],
+            [$this->mockOpenSearchable],
+        ];
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = $this->mockOpenSearchable->openSearchIndexName();
+
+        $this->mockedClient->shouldReceive('bulk')
+            ->twice()
+            ->andReturn(
+                $this->bulkResponse($indexName, [201, 200]),
+                $this->bulkResponse($indexName, [201, 400, 201])
+            );
+
+        try {
+            $os->createAll(null, 2);
+            $this->fail('OpenSearchCreateException was not thrown.');
+        } catch (OpenSearchCreateException $e) {
+            $this->assertSame(4, $e->getIndexedCount());
+            $this->assertCount(1, $e->getFailedItems());
+            $this->assertSame('2', $e->getFailedItems()[0]['_id']);
+            $this->assertStringEndsWith('1 of 3 documents in the current chunk was rejected. 4 documents were indexed before the failure.', $e->getMessage());
+        }
+    }
+
+    public function testCreateWithAnArrayOfIdsReportsTheFailedItems()
+    {
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = $this->mockOpenSearchable->openSearchIndexName();
+
+        $this->mockedClient->shouldReceive('bulk')
+            ->andReturn($this->bulkResponse($indexName, [400]));
+
+        try {
+            $os->create([1]);
+            $this->fail('OpenSearchCreateException was not thrown.');
+        } catch (OpenSearchCreateException $e) {
+            $this->assertSame(0, $e->getIndexedCount());
+            $this->assertSame([['_id' => '1', 'status' => 400, 'error' => $this->bulkError('1')]], $e->getFailedItems());
+        }
+    }
+
+    /**
+     * A bulk response shaped like the one OpenSearch 3.0 returns, with one item per status. Ids count up from 1.
+     */
+    private function bulkResponse(string $indexName, array $statuses): array
+    {
+        $items = [];
+
+        foreach ($statuses as $position => $status) {
+            $id = (string)($position + 1);
+
+            if ($status >= 300) {
+                $items[] = ['index' => ['_index' => $indexName, '_id' => $id, 'status' => $status, 'error' => $this->bulkError($id)]];
+
+                continue;
+            }
+
+            $items[] = [
+                'index' => [
+                    '_index' => $indexName,
+                    '_id' => $id,
+                    '_version' => 1,
+                    'result' => $status === 201 ? 'created' : 'updated',
+                    '_shards' => ['total' => 2, 'successful' => 1, 'failed' => 0],
+                    '_seq_no' => $position,
+                    '_primary_term' => 1,
+                    'status' => $status,
+                ],
+            ];
+        }
+
+        return [
+            'took' => 22,
+            'errors' => in_array(true, array_map(fn($status) => $status >= 300, $statuses), true),
+            'items' => $items,
+        ];
+    }
+
+    private function bulkError(string $id): array
+    {
+        return [
+            'type' => 'mapper_parsing_exception',
+            'reason' => "failed to parse field [n] of type [integer] in document with id '$id'. Preview of field's value: 'SECRET_FIELD_VALUE'",
+            'caused_by' => [
+                'type' => 'number_format_exception',
+                'reason' => 'For input string: "SECRET_FIELD_VALUE"',
+            ],
+        ];
     }
 }

@@ -30,7 +30,7 @@ class OpenSearchDocuments
      * @param int $size The size of the chunks when indexing models ( default = 100 )
      *
      * @return bool
-     * @throws OpenSearchCreateException
+     * @throws OpenSearchCreateException When a bulk request reports errors. Earlier chunks stay indexed; the exception's getIndexedCount() says how many documents made it in.
      */
     public function createAll(?callable $callable = null, int $size = 100): bool
     {
@@ -40,8 +40,10 @@ class OpenSearchDocuments
             $query = $callable($query);
         }
 
-        $query->chunkById($size, function ($entities) {
-            $this->bulkIndex($entities);
+        $indexedCount = 0;
+
+        $query->chunkById($size, function ($entities) use (&$indexedCount) {
+            $indexedCount += $this->bulkIndex($entities, $indexedCount);
         });
 
         return true;
@@ -60,7 +62,7 @@ class OpenSearchDocuments
      *
      * @return bool
      * @throws ModelException When a single id is given and no model has it
-     * @throws OpenSearchCreateException
+     * @throws OpenSearchCreateException When a bulk request reports errors. Earlier chunks stay indexed.
      */
     public function create(int|string|array $ids, ?callable $callable = null, int $size = 100): bool
     {
@@ -89,8 +91,10 @@ class OpenSearchDocuments
             return true;
         }
 
+        $indexedCount = 0;
+
         foreach ($query->find($ids)->chunk($size) as $chunk) {
-            $this->bulkIndex($chunk);
+            $indexedCount += $this->bulkIndex($chunk, $indexedCount);
         }
 
         return true;
@@ -150,10 +154,12 @@ class OpenSearchDocuments
      * Sends one bulk request with an `index` action per model.
      *
      * @param iterable $entities
+     * @param int $indexedBefore Documents indexed by earlier requests of the same run, reported if this one fails
      *
-     * @throws OpenSearchCreateException
+     * @return int The number of documents this request indexed
+     * @throws OpenSearchCreateException When the response reports errors; earlier requests stay indexed
      */
-    private function bulkIndex(iterable $entities): void
+    private function bulkIndex(iterable $entities, int $indexedBefore): int
     {
         $bulk['body'] = [];
 
@@ -169,9 +175,30 @@ class OpenSearchDocuments
         }
 
         $results = $this->client->bulk($bulk);
+        $indexed = $this->countSuccessfulItems($results);
 
         if (isset($results['errors']) && $results['errors'] === true) {
-            throw new OpenSearchCreateException($this->indexName, $results);
+            throw new OpenSearchCreateException($this->indexName, $results, $indexedBefore + $indexed);
         }
+
+        return $indexed;
+    }
+
+    /**
+     * Counts the items of a bulk response that carry no error. A request can partially succeed.
+     */
+    private function countSuccessfulItems(array $results): int
+    {
+        $successful = 0;
+
+        foreach ($results['items'] ?? [] as $item) {
+            foreach ((array)$item as $result) {
+                if (is_array($result) && !isset($result['error'])) {
+                    $successful++;
+                }
+            }
+        }
+
+        return $successful;
     }
 }
