@@ -6,11 +6,16 @@ use Codeart\OpensearchLaravel\OpenSearchable;
 use Codeart\OpensearchLaravel\Traits\HasOpenSearchDocuments;
 use Illuminate\Database\Eloquent\Model;
 
-class MockOpenSearchable extends Model implements OpenSearchable
+/**
+ * A real, table-backed model for the tests that need Eloquent to hit a database.
+ */
+class MockIndexedRecord extends Model implements OpenSearchable
 {
     use HasOpenSearchDocuments;
 
-    protected $attributes = [
-        'id' => 1,
+    public $timestamps = false;
+
+    protected $fillable = [
+        'name',
     ];
 }

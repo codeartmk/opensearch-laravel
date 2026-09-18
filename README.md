@@ -796,22 +796,33 @@ User::opensearch()
 ```php
 use App\Models\User;
 
+// Index every model, $size (default 100) per bulk request
 User::opensearch()
     ->documents()
-    ->createAll();
+    ->createAll(?callable $callable = null, int $size = 100);
+
+// int|string: index one model; refuses to overwrite an existing document
+// array: index several models in bulk; overwrites existing documents
+User::opensearch()
+    ->documents()
+    ->create(int|string|array $ids, ?callable $callable = null, int $size = 100);
+
+// Create the document, or update it if it exists
+User::opensearch()
+    ->documents()
+    ->createOrUpdate(int|string $id, ?callable $callable = null);
 
 User::opensearch()
     ->documents()
-    ->create($ids);
-
-User::opensearch()
-    ->documents()
-    ->createOrUpdate($id);
-
-User::opensearch()
-    ->documents()
-    ->delete($id);
+    ->delete(int|string $id);
 ```
+
+The document `_id` is always the model's primary key (`$model->getKey()`), so models with a custom or UUID primary key
+work as well. `create()` with a single id and `createOrUpdate()` throw a `ModelException` when no model has that id.
+
+`createAll()` pages through the table with Laravel's
+[`chunkById()`](https://laravel.com/docs/eloquent#chunking-results), so rows that are deleted or added while it runs
+don't cause other rows to be skipped.
 
 ### Lazy Loading Relationship
 
@@ -825,6 +836,9 @@ User::opensearch()
     ->documents()
     ->create($ids, fn($query) => $query->with('relationship'));
 ```
+
+The callback is meant for eager loading. Don't use it to reorder or join: `chunkById()` orders by the primary key, and
+an `orderBy()` or a join added in the callback can conflict with its paging.
 
 ## The client
 

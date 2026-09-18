@@ -8,6 +8,7 @@ use Codeart\OpensearchLaravel\Factories\OpensearchClientFactory;
 use Codeart\OpensearchLaravel\OpenSearchDocuments;
 use Codeart\OpensearchLaravel\Tests\Mocks\MockOpenSearchable;
 use Codeart\OpensearchLaravel\Tests\TestCase;
+use Illuminate\Database\Eloquent\Collection;
 use Mockery;
 use OpenSearch\Client;
 
@@ -28,7 +29,7 @@ class OpenSearchDocumentsTest extends TestCase
 
         $this->mockedClient = Mockery::mock(Client::class);
 
-        $this->clientFactory = $this->createMock(OpensearchClientFactory::class);
+        $this->clientFactory = $this->createStub(OpensearchClientFactory::class);
         $this->clientFactory->method('createClient')
             ->willReturn($this->mockedClient);
 
@@ -44,7 +45,7 @@ class OpenSearchDocumentsTest extends TestCase
             );
 
         $queryMock = Mockery::mock();
-        $queryMock->shouldReceive('chunk')
+        $queryMock->shouldReceive('chunkById')
             ->andReturnUsing(function ($size, $callback) {
                 $callback([
                     $this->mockOpenSearchable,
@@ -55,7 +56,7 @@ class OpenSearchDocumentsTest extends TestCase
         $queryMock->shouldReceive('with')
             ->andReturnSelf();
         $queryMock->shouldReceive('find')
-            ->andReturnUsing(fn() => $this->foundModel);
+            ->andReturnUsing(fn($ids) => is_array($ids) ? new Collection(array_filter([$this->foundModel])) : $this->foundModel);
 
         $this->mockOpenSearchable->shouldReceive('query')->andReturn($queryMock);
 
@@ -195,5 +196,106 @@ class OpenSearchDocumentsTest extends TestCase
 
         $this->assertSame($indexName, $os->createOrUpdate(1)['index']);
         $this->assertSame($indexName, $os->delete(1)['index']);
+    }
+
+    public function testDocumentIdsComeFromTheModelsPrimaryKey()
+    {
+        $uuid = '9b2f6c1e-4d3a-4f8e-a2b7-5c0d1e9f3a64';
+        $this->mockOpenSearchable->setKeyName('uuid');
+        $this->mockOpenSearchable->setKeyType('string');
+        $this->mockOpenSearchable->setAttribute('uuid', $uuid);
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $sentBodies = [];
+
+        $this->mockedClient->shouldReceive('bulk')
+            ->andReturnUsing(function ($params) use (&$sentBodies) {
+                $sentBodies[] = $params['body'];
+
+                return [];
+            });
+        $this->mockedClient->shouldReceive('create')
+            ->andReturnUsing(function ($params) use (&$sentBodies) {
+                $sentBodies[] = $params;
+
+                return [];
+            });
+        $this->mockedClient->shouldReceive('update')
+            ->andReturnUsing(fn($params) => $params);
+
+        $os->createAll();
+        $os->create([$uuid]);
+        $os->create($uuid);
+
+        $this->assertSame($uuid, $sentBodies[0][0]['index']['_id']);
+        $this->assertSame($uuid, $sentBodies[0][2]['index']['_id']);
+        $this->assertSame($uuid, $sentBodies[0][4]['index']['_id']);
+        $this->assertSame($uuid, $sentBodies[1][0]['index']['_id']);
+        $this->assertSame($uuid, $sentBodies[2]['id']);
+        $this->assertSame($uuid, $os->createOrUpdate($uuid)['id']);
+    }
+
+    public function testCreateOrUpdateAndDeleteAcceptStringIds()
+    {
+        $uuid = '9b2f6c1e-4d3a-4f8e-a2b7-5c0d1e9f3a64';
+        $this->mockOpenSearchable->setKeyName('uuid');
+        $this->mockOpenSearchable->setKeyType('string');
+        $this->mockOpenSearchable->setAttribute('uuid', $uuid);
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+
+        $this->mockedClient->shouldReceive('update')
+            ->andReturnUsing(fn($params) => $params);
+        $this->mockedClient->shouldReceive('delete')
+            ->andReturnUsing(fn($params) => $params);
+
+        $this->assertSame($uuid, $os->createOrUpdate($uuid)['id']);
+        $this->assertSame(
+            ['index' => $this->mockOpenSearchable->openSearchIndexName(), 'id' => $uuid],
+            $os->delete($uuid)
+        );
+    }
+
+    public function testCreateWithASingleIdThrowsWhenTheModelDoesNotExist()
+    {
+        $this->foundModel = null;
+
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+
+        $this->mockedClient->shouldNotReceive('create');
+        $this->mockedClient->shouldNotReceive('bulk');
+
+        $this->expectException(ModelException::class);
+        $this->expectExceptionMessage('No model found with id:999 for index:' . $this->mockOpenSearchable->openSearchIndexName() . '.');
+
+        $os->create(999);
+    }
+
+    public function testCreateWithASingleIdUsesTheCreateEndpointAndAnArrayUsesBulkIndex()
+    {
+        $os = new OpenSearchDocuments($this->clientFactory->createClient(), $this->mockOpenSearchable);
+        $indexName = $this->mockOpenSearchable->openSearchIndexName();
+
+        $this->mockedClient->shouldReceive('create')
+            ->once()
+            ->with([
+                'index' => $indexName,
+                'id' => 1,
+                'refresh' => true,
+                'body' => ['id' => 1, 'foo' => ['bar' => 'foobar']],
+            ])
+            ->andReturn([]);
+        $this->mockedClient->shouldReceive('bulk')
+            ->once()
+            ->with([
+                'body' => [
+                    ['index' => ['_index' => $indexName, '_id' => 1]],
+                    ['id' => 1, 'foo' => ['bar' => 'foobar']],
+                ],
+            ])
+            ->andReturn([]);
+
+        $this->assertTrue($os->create(1));
+        $this->assertTrue($os->create([1]));
     }
 }

@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `guzzlehttp/guzzle` (`^7.8|^8.0`) is now a required dependency. It is the HTTP client the package will use to talk to OpenSearch.
 - `OpensearchClientFactory` now builds the client with opensearch-php's `GuzzleClientFactory` instead of the deprecated `ClientBuilder`, which is removed in opensearch-php 3.0. Guzzle is the HTTP transport, so it is a required dependency. The basic-auth header is only sent when `opensearch-laravel.username` is set, so clusters without the security plugin no longer receive empty credentials.
 - The development dependencies now allow `orchestra/testbench` 10 and 11 and `phpunit/phpunit` 11.5 through 13. The GitHub Actions workflow tests Laravel 12 on PHP 8.2–8.5 and Laravel 13 on PHP 8.3–8.5.
+- `documents()->createAll()` now pages through the models with `chunkById()` (keyset pagination on the primary key) instead of `chunk()` (`OFFSET` pagination). Rows deleted while an indexing run was in progress used to shift the following pages, so a row could silently never be indexed, and late pages on large tables were slow. Because `chunkById()` orders by the primary key, an `orderBy()` or a join added in the eager-loading callback can conflict with the paging; the callback is meant for eager loading only.
+- The document `_id` is now the model's primary key (`$model->getKey()`) instead of its `id` attribute, in `createAll()`, `create()` and `createOrUpdate()`. Models with a custom or UUID primary key now index correctly; models whose key is `id` are unaffected.
+- `documents()->create()` now accepts `int|string|array`, and `createOrUpdate()` and `delete()` accept `int|string`, so string and UUID primary keys can be passed. Subclasses of `OpenSearchDocuments` that override these methods must widen their signatures to match.
+
+### Fixed
+
+- `documents()->create()` with a single id that matches no model now throws `ModelException`, like `createOrUpdate()` does. It used to fail with a fatal error on `null`.
 
 ### Removed
 
