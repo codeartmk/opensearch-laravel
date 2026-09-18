@@ -6,8 +6,9 @@ use OpenSearch\Client;
 use OpenSearch\GuzzleClientFactory;
 
 /**
- * The only place a Client is built, and the only class that reads the package config. Bound as a
- * singleton, so swapping it in the container changes what every Model::opensearch() call talks to.
+ * The only place a Client is built, and the only class that reads the connection config (the index
+ * prefix is read by IndexNameResolver). Bound as a singleton, so swapping it in the container
+ * changes what every Model::opensearch() call talks to.
  */
 class OpensearchClientFactory
 {

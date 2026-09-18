@@ -7,12 +7,19 @@
 
 This package integrates the Opensearch client to work seamlessly with your Laravel Eloquent Model.
 
+Upgrading from 1.x? See [`UPGRADE.md`](UPGRADE.md) — 2.0 changes the config defaults, stops sending `size` by default
+and renames four aggregation classes.
+
 ## Requirements
 
 | Laravel | PHP |
 |---|---|
 | 12.x | 8.2 – 8.5 |
 | 13.x | 8.3 – 8.5 |
+
+The package also requires [`opensearch-project/opensearch-php`](https://github.com/opensearch-project/opensearch-php)
+`^2.7` and Guzzle (`guzzlehttp/guzzle` `^7.8|^8.0`, which Laravel apps already have) as its HTTP client. Laravel 10
+and 11 are supported by the 1.x releases.
 
 ## Installation
 
@@ -58,6 +65,10 @@ Put the credentials in `OPENSEARCH_USERNAME` and `OPENSEARCH_PASSWORD`, not in t
 (`https://user:pass@search.example.com`). The package sends them in the `Authorization` header only. A URL is copied
 into far more places than a header — config dumps, debug output, error trackers, and the connection-error messages of
 HTTP clients that don't redact it — so credentials in the URL leak much more easily.
+
+If you published the config file from 1.x, update your copy: `mergeConfigFrom()` only fills in missing keys, so a
+published 1.x file keeps its old `ssl_verification => false` and `admin`/`admin` fallbacks. See
+[`UPGRADE.md`](UPGRADE.md#configuration-tls-verification-and-credentials).
 
 ## Basic usage
 
@@ -156,6 +167,15 @@ Once the model is ready you can start building your queries and aggregation thro
 
 ```php
 use App\Models\User;
+use Codeart\OpensearchLaravel\Aggregations\Aggregation;
+use Codeart\OpensearchLaravel\Aggregations\Types\BucketSort;
+use Codeart\OpensearchLaravel\Aggregations\Types\Terms;
+use Codeart\OpensearchLaravel\Search\Query;
+use Codeart\OpensearchLaravel\Search\SearchQueries\BoolQuery;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Must;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Should;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne;
+use Codeart\OpensearchLaravel\Search\Sort;
 
 User::opensearch()
     ->builder()
@@ -188,8 +208,11 @@ User::opensearch()
             )
         ),
     ])
+    ->size(20)
     ->get();
 ```
+
+`get()` returns the raw OpenSearch response as an array (`hits`, `aggregations`, ...); nothing is hydrated into models.
 
 `search()` takes a `Query`, a `Sort`, or one of each, in any order. Anything else, a second `Query` or `Sort`, or an
 empty list throws `InvalidSearchParametersException`. `aggregations()` takes an `Aggregation` or a list of them and
@@ -197,15 +220,21 @@ throws `InvalidAggregationParametersException` for an empty list, an item that i
 aggregations with the same name at the same level. Both exceptions implement
 `Codeart\OpensearchLaravel\Exceptions\OpenSearchException`.
 
-`Query::make()` takes exactly one root query (a query type or a `BoolQuery`); combine several conditions inside a
-`BoolQuery`. An empty list, more than one item, or anything that isn't a query throws `InvalidSearchParametersException`.
+[`Query::make()`](https://opensearch.org/docs/latest/query-dsl/) takes exactly one root query (a query type or a
+`BoolQuery`); combine several conditions inside a `BoolQuery`. An empty list, more than one item, or anything that
+isn't a query throws `InvalidSearchParametersException`.
 
-`BoolQuery::make()` takes at most one each of `Must`, `Should`, `MustNot` and `Filter`, plus the optional
-`minimum_should_match` and `boost` keys. Anything else throws `InvalidSearchParametersException`.
-`minimum_should_match` is only sent when there is a `Should` clause, because without one it would match nothing.
+[`BoolQuery::make()`](https://opensearch.org/docs/latest/query-dsl/compound/bool/) takes at most one each of `Must`,
+`Should`, `MustNot` and `Filter`, plus the optional `minimum_should_match` and `boost` keys. Anything else throws
+`InvalidSearchParametersException`. `minimum_should_match` is only sent when there is a `Should` clause, because
+without one it would match nothing.
 
 `Must`, `Should`, `MustNot` and `Filter` each take a query type, a `BoolQuery`, or a list of them. A list item that isn't a
 query throws `InvalidSearchParametersException`.
+
+[`Sort::make()`](https://opensearch.org/docs/latest/search-plugins/searching-data/sort/) takes the `sort` array as
+OpenSearch expects it and sends it as is, e.g. `Sort::make(['id' => 'desc'])` or
+`Sort::make([['created_at' => ['order' => 'desc']], '_score'])`.
 
 ### Sub-aggregations
 
@@ -816,22 +845,24 @@ We have the methods `create`, `exists`, and `delete` currently.
 
 The optional `$configuration` parameter in the `create` method allows you to customize your 
 [settings](https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/index-settings/#specifying-a-setting-when-creating-an-index) 
-for your index.
+for your index: `number_of_shards` (default `1`), `number_of_replicas` (default `1`) and `refresh_interval` (default
+`'1s'`); other keys are ignored. The model's `openSearchMapping()` is sent as the index mappings when it isn't empty.
+`create()` throws an `IndexAlreadyExistException` when the index already exists.
 
 ```php
 use App\Models\User;
 
 User::opensearch()
     ->indices()
-    ->create($configuration = []);
+    ->create(['number_of_shards' => 1, 'number_of_replicas' => 1, 'refresh_interval' => '1s']); // array: the raw response
 
 User::opensearch()
     ->indices()
-    ->delete();
+    ->delete(); // array: the raw response
 
 User::opensearch()
     ->indices()
-    ->exists();
+    ->exists(); // bool
 ```
 
 `delete()` refuses an index name that OpenSearch would expand to several indices — one containing a wildcard (`*`) or a
@@ -843,22 +874,24 @@ default. You can still search a pattern such as `logs-*` by returning it from `o
 ```php
 use App\Models\User;
 
-// Index every model, $size (default 100) per bulk request
+// Index every model, $size (default 100) per bulk request. Returns true.
 User::opensearch()
     ->documents()
     ->createAll(?callable $callable = null, int $size = 100);
 
 // int|string: index one model; refuses to overwrite an existing document
 // array: index several models in bulk; overwrites existing documents
+// Returns true.
 User::opensearch()
     ->documents()
     ->create(int|string|array $ids, ?callable $callable = null, int $size = 100);
 
-// Create the document, or update it if it exists
+// Create the document, or update it if it exists. Returns the raw update response.
 User::opensearch()
     ->documents()
     ->createOrUpdate(int|string $id, ?callable $callable = null);
 
+// Returns the raw delete response.
 User::opensearch()
     ->documents()
     ->delete(int|string $id);
@@ -895,10 +928,14 @@ unchanged — for example when `create()` with a single id, `createOrUpdate()` o
 OpenSearch's error reason, which can quote a document value or a search term
 (`failed to parse field [age] of type [long] in document with id '1'. Preview of field's value: '...'`).
 
-### Lazy Loading Relationship
+These client exceptions are the `OpenSearch\Exception\*HttpException` classes — for example `ConflictHttpException`
+when `create()` with a single id finds the document already indexed, or `NotFoundHttpException` for a missing index —
+and a connection failure throws Guzzle's `ConnectException` (a `Psr\Http\Client\ClientExceptionInterface`).
 
-The methods `createAll`, `create`, and `createOrUpdate` all accept a function as a second parameter to allow you to lazy 
-load your relationship when creating documents.
+### Eager loading relationships
+
+The methods `createAll`, `create`, and `createOrUpdate` all accept a closure as a second parameter to eager load your
+relationships when creating documents. It receives the Eloquent query and must return it.
 
 ```php
 use App\Models\User;
@@ -1075,7 +1112,7 @@ User::opensearch()
 ### Aggregations
 
 You can achieve the same for aggregations but instead of `SearchQueryType` you need to implement the
-`AggregationType` inteface.
+`AggregationType` interface.
 
 ```php
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
