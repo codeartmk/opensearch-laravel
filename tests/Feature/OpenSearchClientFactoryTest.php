@@ -8,6 +8,7 @@ use Codeart\OpensearchLaravel\Tests\TestCase;
 use Mockery;
 use Mockery\MockInterface;
 use OpenSearch\Client;
+use ReflectionMethod;
 
 class OpenSearchClientFactoryTest extends TestCase
 {
@@ -24,7 +25,6 @@ class OpenSearchClientFactoryTest extends TestCase
 
         $this->assertSame([
             'index' => 'mockopensearchables',
-            'size' => 10000,
             'body' => [],
         ], MockOpenSearchable::opensearch()->builder()->get());
     }
@@ -45,6 +45,76 @@ class OpenSearchClientFactoryTest extends TestCase
         $factory->forgetClient();
 
         $this->assertNotSame($client, $factory->createClient());
+    }
+
+    public function testTheClientOptionsAreReadFromTheConfig()
+    {
+        config([
+            'opensearch-laravel.host' => 'https://search.example.com:9200',
+            'opensearch-laravel.username' => 'user',
+            'opensearch-laravel.password' => 'secret',
+            'opensearch-laravel.ssl_verification' => true,
+        ]);
+
+        $this->assertSame([
+            'base_uri' => 'https://search.example.com:9200',
+            'verify' => true,
+            'auth' => ['user', 'secret'],
+        ], $this->clientOptions());
+    }
+
+    public function testAuthIsLeftOutWhenNoUsernameIsConfigured()
+    {
+        foreach ([null, ''] as $username) {
+            config([
+                'opensearch-laravel.host' => 'http://localhost:9200',
+                'opensearch-laravel.username' => $username,
+                'opensearch-laravel.password' => 'secret',
+                'opensearch-laravel.ssl_verification' => false,
+            ]);
+
+            $this->assertSame([
+                'base_uri' => 'http://localhost:9200',
+                'verify' => false,
+            ], $this->clientOptions());
+        }
+    }
+
+    public function testTheDefaultConfigVerifiesTlsAndSendsNoCredentials()
+    {
+        $this->assertTrue(config('opensearch-laravel.ssl_verification'));
+        $this->assertNull(config('opensearch-laravel.username'));
+        $this->assertNull(config('opensearch-laravel.password'));
+
+        $options = $this->clientOptions();
+
+        $this->assertTrue($options['verify']);
+        $this->assertArrayNotHasKey('auth', $options);
+    }
+
+    public function testSslVerificationIsPassedToGuzzleUnchanged()
+    {
+        foreach ([true, false, '/etc/ssl/certs/opensearch-ca.pem'] as $sslVerification) {
+            config(['opensearch-laravel.ssl_verification' => $sslVerification]);
+
+            $this->assertSame($sslVerification, $this->clientOptions()['verify']);
+        }
+    }
+
+    public function testAMissingPasswordIsSentAsAnEmptyString()
+    {
+        config([
+            'opensearch-laravel.username' => 'user',
+            'opensearch-laravel.password' => null,
+        ]);
+
+        $this->assertSame(['user', ''], $this->clientOptions()['auth']);
+    }
+
+    private function clientOptions(): array
+    {
+        return (new ReflectionMethod(OpensearchClientFactory::class, 'options'))
+            ->invoke($this->app->make(OpensearchClientFactory::class));
     }
 
     protected function tearDown(): void

@@ -4,8 +4,8 @@ namespace Codeart\OpensearchLaravel\Tests\Unit\Aggregations;
 
 use Codeart\OpensearchLaravel\Aggregations\Aggregation;
 use Codeart\OpensearchLaravel\Aggregations\AggregationBuilder;
-use Codeart\OpensearchLaravel\Aggregations\Types\Average;
-use Codeart\OpensearchLaravel\Aggregations\Types\Maximum;
+use Codeart\OpensearchLaravel\Aggregations\Types\Avg;
+use Codeart\OpensearchLaravel\Aggregations\Types\Max;
 use Codeart\OpensearchLaravel\Aggregations\Types\Terms;
 use Codeart\OpensearchLaravel\Exceptions\InvalidAggregationParametersException;
 use Codeart\OpensearchLaravel\Exceptions\OpenSearchException;
@@ -15,7 +15,7 @@ class AggregationBuilderTest extends TestCase
 {
     public function testBuildsASingleAggregation()
     {
-        $builder = new AggregationBuilder(Aggregation::make('average_price', Average::make('price')));
+        $builder = new AggregationBuilder(Aggregation::make('average_price', Avg::make('price')));
 
         $this->assertEquals([
             'aggs' => [
@@ -27,8 +27,8 @@ class AggregationBuilderTest extends TestCase
     public function testBuildsAListOfAggregations()
     {
         $builder = new AggregationBuilder([
-            Aggregation::make('average_price', Average::make('price')),
-            Aggregation::make('max_price', Maximum::make('price')),
+            Aggregation::make('average_price', Avg::make('price')),
+            Aggregation::make('max_price', Max::make('price')),
         ]);
 
         $this->assertEquals([
@@ -60,8 +60,8 @@ class AggregationBuilderTest extends TestCase
         $this->expectExceptionMessage('Aggregation names must be unique, "price" is used more than once.');
 
         new AggregationBuilder([
-            Aggregation::make('price', Average::make('price')),
-            Aggregation::make('price', Maximum::make('price')),
+            Aggregation::make('price', Avg::make('price')),
+            Aggregation::make('price', Max::make('price')),
         ]);
     }
 
@@ -71,8 +71,8 @@ class AggregationBuilderTest extends TestCase
         $this->expectExceptionMessage('Aggregation names must be unique, "price" is used more than once.');
 
         new AggregationBuilder(Aggregation::make('categories', Terms::make('category'), [
-            Aggregation::make('price', Average::make('price')),
-            Aggregation::make('price', Maximum::make('price')),
+            Aggregation::make('price', Avg::make('price')),
+            Aggregation::make('price', Max::make('price')),
         ]));
     }
 

@@ -7,14 +7,19 @@
 
 This package integrates the Opensearch client to work seamlessly with your Laravel Eloquent Model.
 
+Upgrading from 1.x? See [`UPGRADE.md`](UPGRADE.md) — 2.0 changes the config defaults, stops sending `size` by default
+and renames four aggregation classes.
+
 ## Requirements
 
 | Laravel | PHP |
 |---|---|
-| 10.x | 8.1 – 8.3 |
-| 11.x | 8.2 – 8.4 |
 | 12.x | 8.2 – 8.5 |
 | 13.x | 8.3 – 8.5 |
+
+The package also requires [`opensearch-project/opensearch-php`](https://github.com/opensearch-project/opensearch-php)
+`^2.7` and Guzzle (`guzzlehttp/guzzle` `^7.8|^8.0`, which Laravel apps already have) as its HTTP client. Laravel 10
+and 11 are supported by the 1.x releases.
 
 ## Installation
 
@@ -26,6 +31,44 @@ and then export the configuration with
 ```shell
 php artisan vendor:publish --provider="Codeart\OpensearchLaravel\OpenSearchServiceProvider" --tag="config"
 ```
+
+## Configuration
+
+The connection is configured in `config/opensearch-laravel.php`, from these environment variables:
+
+| Variable | Default | |
+|---|---|---|
+| `OPENSEARCH_HOST` | `http://localhost:9200` | The cluster URL. |
+| `OPENSEARCH_USERNAME` | not set | Basic-auth username. When it is not set, no credentials are sent — for a cluster without the security plugin. |
+| `OPENSEARCH_PASSWORD` | not set | Basic-auth password, used only together with the username. |
+| `OPENSEARCH_SSL_VERIFICATION` | `true` | TLS certificate verification (see below). |
+| `OPENSEARCH_INDEX_PREFIX` | empty | Prepended to every index name (see [Per-environment indices](#per-environment-indices)). |
+
+```dotenv
+OPENSEARCH_HOST=https://search.example.com:9200
+OPENSEARCH_USERNAME=app
+OPENSEARCH_PASSWORD=secret
+```
+
+`OPENSEARCH_SSL_VERIFICATION` is passed to Guzzle's
+[`verify`](https://docs.guzzlephp.org/en/stable/request-options.html#verify) option and takes one of three values:
+
+- `true` (the default) verifies the cluster's certificate against the system CA bundle.
+- A path to a CA bundle file (or a directory of certificates), for a cluster whose certificate is signed by a private
+  CA: `OPENSEARCH_SSL_VERIFICATION=/etc/ssl/certs/opensearch-ca.pem`. The path must exist, or every request fails.
+- `false` turns verification off. Only use it for a local cluster with a self-signed certificate, such as the default
+  OpenSearch Docker image: any certificate is then accepted, so the connection can be intercepted.
+
+Use `true`/`false`, not `1`/`0`: `0` is not read as false but as a file path, and every request fails.
+
+Put the credentials in `OPENSEARCH_USERNAME` and `OPENSEARCH_PASSWORD`, not in the URL
+(`https://user:pass@search.example.com`). The package sends them in the `Authorization` header only. A URL is copied
+into far more places than a header — config dumps, debug output, error trackers, and the connection-error messages of
+HTTP clients that don't redact it — so credentials in the URL leak much more easily.
+
+If you published the config file from 1.x, update your copy: `mergeConfigFrom()` only fills in missing keys, so a
+published 1.x file keeps its old `ssl_verification => false` and `admin`/`admin` fallbacks. See
+[`UPGRADE.md`](UPGRADE.md#configuration-tls-verification-and-credentials).
 
 ## Basic usage
 
@@ -96,12 +139,43 @@ class User extends Authenticatable implements OpenSearchable
 }
 ```
 
+### Per-environment indices
+
+When several environments share one OpenSearch cluster, set `OPENSEARCH_INDEX_PREFIX` so each one gets its own
+indices:
+
+```dotenv
+# local .env
+OPENSEARCH_INDEX_PREFIX=local_
+
+# staging .env
+OPENSEARCH_INDEX_PREFIX=staging_
+```
+
+With those, `User::opensearch()` reads and writes `local_users` locally and `staging_users` on staging. The prefix is
+prepended verbatim, so include the separator yourself. It applies to every index the package touches — searches,
+`indices()` and `documents()` — on top of whatever `openSearchIndexName()` returns, including your own override of it.
+The default is an empty prefix, which keeps the plain index names.
+
+The prefix is the `index_prefix` key in `config/opensearch-laravel.php`. It must follow OpenSearch's
+[index naming rules](https://opensearch.org/docs/latest/api-reference/index-apis/create-index/#index-naming-restrictions)
+(lowercase, not starting with `_`, `-` or `+`, no spaces), otherwise OpenSearch rejects the request.
+
 ## Building queries and aggregations
 
 Once the model is ready you can start building your queries and aggregation through the `opensearch` method on the class:
 
 ```php
 use App\Models\User;
+use Codeart\OpensearchLaravel\Aggregations\Aggregation;
+use Codeart\OpensearchLaravel\Aggregations\Types\BucketSort;
+use Codeart\OpensearchLaravel\Aggregations\Types\Terms;
+use Codeart\OpensearchLaravel\Search\Query;
+use Codeart\OpensearchLaravel\Search\SearchQueries\BoolQuery;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Must;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Should;
+use Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne;
+use Codeart\OpensearchLaravel\Search\Sort;
 
 User::opensearch()
     ->builder()
@@ -134,8 +208,11 @@ User::opensearch()
             )
         ),
     ])
+    ->size(20)
     ->get();
 ```
+
+`get()` returns the raw OpenSearch response as an array (`hits`, `aggregations`, ...); nothing is hydrated into models.
 
 `search()` takes a `Query`, a `Sort`, or one of each, in any order. Anything else, a second `Query` or `Sort`, or an
 empty list throws `InvalidSearchParametersException`. `aggregations()` takes an `Aggregation` or a list of them and
@@ -143,15 +220,21 @@ throws `InvalidAggregationParametersException` for an empty list, an item that i
 aggregations with the same name at the same level. Both exceptions implement
 `Codeart\OpensearchLaravel\Exceptions\OpenSearchException`.
 
-`Query::make()` takes exactly one root query (a query type or a `BoolQuery`); combine several conditions inside a
-`BoolQuery`. An empty list, more than one item, or anything that isn't a query throws `InvalidSearchParametersException`.
+[`Query::make()`](https://opensearch.org/docs/latest/query-dsl/) takes exactly one root query (a query type or a
+`BoolQuery`); combine several conditions inside a `BoolQuery`. An empty list, more than one item, or anything that
+isn't a query throws `InvalidSearchParametersException`.
 
-`BoolQuery::make()` takes at most one each of `Must`, `Should`, `MustNot` and `Filter`, plus the optional
-`minimum_should_match` and `boost` keys. Anything else throws `InvalidSearchParametersException`.
-`minimum_should_match` is only sent when there is a `Should` clause, because without one it would match nothing.
+[`BoolQuery::make()`](https://opensearch.org/docs/latest/query-dsl/compound/bool/) takes at most one each of `Must`,
+`Should`, `MustNot` and `Filter`, plus the optional `minimum_should_match` and `boost` keys. Anything else throws
+`InvalidSearchParametersException`. `minimum_should_match` is only sent when there is a `Should` clause, because
+without one it would match nothing.
 
 `Must`, `Should`, `MustNot` and `Filter` each take a query type, a `BoolQuery`, or a list of them. A list item that isn't a
 query throws `InvalidSearchParametersException`.
+
+[`Sort::make()`](https://opensearch.org/docs/latest/search-plugins/searching-data/sort/) takes the `sort` array as
+OpenSearch expects it and sends it as is, e.g. `Sort::make(['id' => 'desc'])` or
+`Sort::make([['created_at' => ['order' => 'desc']], '_score'])`.
 
 ### Sub-aggregations
 
@@ -163,16 +246,25 @@ Aggregation::make(
     name: 'categories',
     aggregationType: Terms::make('category'),
     aggregation: [
-        Aggregation::make('average_price', Average::make('price')),
-        Aggregation::make('max_price', Maximum::make('price')),
+        Aggregation::make('average_price', Avg::make('price')),
+        Aggregation::make('max_price', Max::make('price')),
     ]
 );
 ```
 
 ### Pagination, source filtering, highlighting and total hits
 
-`size()` defaults to `10000`. If you only need aggregations, call `->size(0)` so no documents are returned alongside
-them. The other options are only sent when you call them.
+Every option below is only sent when you call it. Without `size()`, OpenSearch's own default of 10 hits applies, so
+call `->size(...)` when you need more. If you only need aggregations, call `->size(0)` so no documents are returned
+alongside them:
+
+```php
+User::opensearch()
+    ->builder()
+    ->aggregations(Aggregation::make('categories', Terms::make('category')))
+    ->size(0)
+    ->get();
+```
 
 ```php
 use App\Models\User;
@@ -183,7 +275,7 @@ User::opensearch()
         Query::make([MatchOne::make('bio', 'laravel')]),
     ])
     ->size(20)
-    ->from(40) // requires size(); from + size can't exceed the index's max_result_window (10000 by default)
+    ->from(40) // from + size can't exceed the index's max_result_window (10000 by default)
     ->source(['name', 'email']) // or false, a single field, or ['includes' => [...], 'excludes' => [...]]
     ->highlight(['bio', 'title' => ['fragment_size' => 50]], ['pre_tags' => ['<b>'], 'post_tags' => ['</b>']])
     ->trackTotalHits() // true, false, or a number to count up to
@@ -280,6 +372,7 @@ User::opensearch()
 [https://opensearch.org/docs/latest/query-dsl/term/ids/](https://opensearch.org/docs/latest/query-dsl/term/ids/)
 ```php
 \Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make([34229, 91296]);
+\Codeart\OpensearchLaravel\Search\SearchQueries\Types\Ids::make('9b2c7e1a-4f3d-4e8a-9c61-2d5f0a7b8e34');
 ```
 
 #### Prefix
@@ -429,7 +522,7 @@ User::opensearch()
 
 [https://opensearch.org/docs/latest/aggregations/metric/average/](https://opensearch.org/docs/latest/aggregations/metric/average/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Average::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Avg::make('taxful_total_price');
 ```
 
 #### Cardinality
@@ -465,22 +558,22 @@ User::opensearch()
 
 [https://opensearch.org/docs/latest/aggregations/metric/maximum/](https://opensearch.org/docs/latest/aggregations/metric/maximum/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Maximum::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Max::make('taxful_total_price');
 ```
 
 #### Minimum
 
 [https://opensearch.org/docs/latest/aggregations/metric/minimum/](https://opensearch.org/docs/latest/aggregations/metric/minimum/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Minimum::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Min::make('taxful_total_price');
 ```
 
-#### Percentile
+#### Percentiles
 
 [https://opensearch.org/docs/latest/aggregations/metric/percentile/](https://opensearch.org/docs/latest/aggregations/metric/percentile/)
 ```php
-\Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price');
-\Codeart\OpensearchLaravel\Aggregations\Types\Percentile::make('taxful_total_price', percents: [50, 95, 99]);
+\Codeart\OpensearchLaravel\Aggregations\Types\Percentiles::make('taxful_total_price');
+\Codeart\OpensearchLaravel\Aggregations\Types\Percentiles::make('taxful_total_price', percents: [50, 95, 99]);
 ```
 
 #### Percentile Ranks
@@ -690,7 +783,12 @@ User::opensearch()
 ```php
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('company_id');
 \Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make('total_sales', order: 'desc', size: 5, from: 0);
+// Without a field, only truncates: keeps 3 buckets in the parent's order
+\Codeart\OpensearchLaravel\Aggregations\Types\BucketSort::make(size: 3);
 ```
+
+The field is optional when `size` or `from` is given. `order` without a field, or no field, `size` or `from` at all,
+throws `InvalidAggregationParametersException`.
 
 #### Cumulative Sum
 
@@ -753,50 +851,97 @@ We have the methods `create`, `exists`, and `delete` currently.
 
 The optional `$configuration` parameter in the `create` method allows you to customize your 
 [settings](https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/index-settings/#specifying-a-setting-when-creating-an-index) 
-for your index.
+for your index: `number_of_shards` (default `1`), `number_of_replicas` (default `1`) and `refresh_interval` (default
+`'1s'`); other keys are ignored. The model's `openSearchMapping()` is sent as the index mappings when it isn't empty.
+`create()` throws an `IndexAlreadyExistException` when the index already exists.
 
 ```php
 use App\Models\User;
 
 User::opensearch()
     ->indices()
-    ->create($configuration = []);
+    ->create(['number_of_shards' => 1, 'number_of_replicas' => 1, 'refresh_interval' => '1s']); // array: the raw response
 
 User::opensearch()
     ->indices()
-    ->delete();
+    ->delete(); // array: the raw response
 
 User::opensearch()
     ->indices()
-    ->exists();
+    ->exists(); // bool
 ```
+
+`delete()` refuses an index name that OpenSearch would expand to several indices — one containing a wildcard (`*`) or a
+comma, or `_all` — and throws an `InvalidIndexNameException` instead: OpenSearch deletes every matching index by
+default. You can still search a pattern such as `logs-*` by returning it from `openSearchIndexName()`.
 
 ### Documents
 
 ```php
 use App\Models\User;
 
+// Index every model, $size (default 100) per bulk request. Returns true.
 User::opensearch()
     ->documents()
-    ->createAll();
+    ->createAll(?callable $callable = null, int $size = 100);
 
+// int|string: index one model; refuses to overwrite an existing document
+// array: index several models in bulk; overwrites existing documents
+// Returns true.
 User::opensearch()
     ->documents()
-    ->create($ids);
+    ->create(int|string|array $ids, ?callable $callable = null, int $size = 100);
 
+// Create the document, or update it if it exists. Returns the raw update response.
 User::opensearch()
     ->documents()
-    ->createOrUpdate($id);
+    ->createOrUpdate(int|string $id, ?callable $callable = null);
 
+// Returns the raw delete response.
 User::opensearch()
     ->documents()
-    ->delete($id);
+    ->delete(int|string $id);
 ```
 
-### Lazy Loading Relationship
+The document `_id` is always the model's primary key (`$model->getKey()`), so models with a custom or UUID primary key
+work as well. `create()` with a single id and `createOrUpdate()` throw a `ModelException` when no model has that id.
 
-The methods `createAll`, `create`, and `createOrUpdate` all accept a function as a second parameter to allow you to lazy 
-load your relationship when creating documents.
+`createAll()` pages through the table with Laravel's
+[`chunkById()`](https://laravel.com/docs/eloquent#chunking-results), so rows that are deleted or added while it runs
+don't cause other rows to be skipped.
+
+When OpenSearch rejects documents in a bulk request, `createAll()` and `create()` with an array of ids throw an
+`OpenSearchCreateException` and stop. Chunks sent before the failure stay indexed. The exception message only holds
+counts, so it is safe to log; the details are on the exception:
+
+```php
+use Codeart\OpensearchLaravel\Exceptions\OpenSearchCreateException;
+
+try {
+    User::opensearch()->documents()->createAll();
+} catch (OpenSearchCreateException $e) {
+    $e->getFailedItems();  // [['_id' => '5', 'status' => 400, 'error' => [...]], ...] for the failing chunk
+    $e->getIndexedCount(); // documents indexed before the failure, earlier chunks included
+    $e->getResponse();     // the raw bulk response of the failing request
+}
+```
+
+The `error` reasons OpenSearch returns can quote the rejected field values, so treat `getFailedItems()` and
+`getResponse()` like the documents themselves before logging them.
+
+The same applies to the exceptions of the underlying `opensearch-php` client, which the package lets through
+unchanged — for example when `create()` with a single id, `createOrUpdate()` or a search is rejected. Their message is
+OpenSearch's error reason, which can quote a document value or a search term
+(`failed to parse field [age] of type [long] in document with id '1'. Preview of field's value: '...'`).
+
+These client exceptions are the `OpenSearch\Exception\*HttpException` classes — for example `ConflictHttpException`
+when `create()` with a single id finds the document already indexed, or `NotFoundHttpException` for a missing index —
+and a connection failure throws Guzzle's `ConnectException` (a `Psr\Http\Client\ClientExceptionInterface`).
+
+### Eager loading relationships
+
+The methods `createAll`, `create`, and `createOrUpdate` all accept a closure as a second parameter to eager load your
+relationships when creating documents. It receives the Eloquent query and must return it.
 
 ```php
 use App\Models\User;
@@ -805,6 +950,76 @@ User::opensearch()
     ->documents()
     ->create($ids, fn($query) => $query->with('relationship'));
 ```
+
+The callback is meant for eager loading. Don't use it to reorder or join: `chunkById()` orders by the primary key, and
+an `orderBy()` or a join added in the callback can conflict with its paging.
+
+## Health checks
+
+`Codeart\OpensearchLaravel\OpenSearchHealth` reports on the cluster and on individual indices, for your own health
+endpoints or checks (e.g. a `/health` route or a `spatie/laravel-health` check). Resolve it from the container — it
+uses the same client as the rest of the package:
+
+```php
+use Codeart\OpensearchLaravel\OpenSearchHealth;
+
+$health = app(OpenSearchHealth::class);
+```
+
+| Method | Returns |
+|---|---|
+| `isReachable(): bool` | Whether the cluster answers a ping. Never throws: a connection failure, timeout or HTTP error (e.g. wrong credentials) returns `false`. |
+| `cluster(): array` | The raw [cluster health](https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/) response (`status`, `number_of_nodes`, `unassigned_shards`, ...). |
+| `index(string $indexName): array` | One flat array for one index: `index`, `status`, `docs_count` (primary documents), `store_size_in_bytes` (including replicas), `number_of_shards`, `number_of_replicas`, `refresh_interval`, `max_result_window`. A setting not set on the index, so the cluster default applies, is `null`. Throws `OpenSearch\Exception\NotFoundHttpException` when the index doesn't exist, and `InvalidIndexNameException` for an empty name, `_all`, or a name with a wildcard or a comma, which OpenSearch would answer with the stats of several indices. |
+| `report(array $indexNames = []): array` | `reachable`, `cluster`, `version` (the OpenSearch version number) and `indices` (name → `index()` array, or `null` when the index doesn't exist). Never throws when the cluster is down: `reachable` is then `false` and everything else is `null`. When the cluster answers but refuses or fails a call — a `403` because the user lacks the monitor privileges, a `5xx` — only that part is `null` (`cluster`, `version` or the index) and the rest is still reported. |
+
+Health isn't tied to a model, so the methods take the full index name. For a model's index, resolve it with
+`IndexNameResolver`, which includes the `OPENSEARCH_INDEX_PREFIX`:
+
+```php
+use App\Models\User;
+use Codeart\OpensearchLaravel\IndexNameResolver;
+use Codeart\OpensearchLaravel\OpenSearchHealth;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/health/opensearch', function (OpenSearchHealth $health) {
+    $report = $health->report([IndexNameResolver::resolve(new User())]);
+
+    // cluster is null when the cluster refused the health call, so treat that as unhealthy too.
+    $status = $report['cluster']['status'] ?? null;
+    $healthy = $report['reachable'] && in_array($status, ['green', 'yellow'], true);
+
+    // Return only the status: the full report is for authenticated dashboards (see below).
+    return response()->json(['status' => $status ?? 'unreachable'], $healthy ? 200 : 503);
+});
+```
+
+A sample `report()` for one index:
+
+```json
+{
+    "reachable": true,
+    "cluster": { "cluster_name": "opensearch-cluster", "status": "green", "number_of_nodes": 2, "...": "..." },
+    "version": "3.0.0",
+    "indices": {
+        "local_users": {
+            "index": "local_users",
+            "status": "green",
+            "docs_count": 1,
+            "store_size_in_bytes": 3566,
+            "number_of_shards": 2,
+            "number_of_replicas": 0,
+            "refresh_interval": "5s",
+            "max_result_window": null
+        }
+    }
+}
+```
+
+`report()` is not redacted: `cluster` is the raw cluster health response, which includes the cluster name (on Amazon
+OpenSearch Service that is `account-id:domain-name`) and node and shard counts, and `indices` lists your index names
+and sizes. It never contains credentials or the host. Return the full report only from a route that requires
+authentication; a public health route should return a status, as in the example above.
 
 ## The client
 
@@ -903,7 +1118,7 @@ User::opensearch()
 ### Aggregations
 
 You can achieve the same for aggregations but instead of `SearchQueryType` you need to implement the
-`AggregationType` inteface.
+`AggregationType` interface.
 
 ```php
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;

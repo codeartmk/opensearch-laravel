@@ -4,12 +4,17 @@ namespace Codeart\OpensearchLaravel\Search;
 
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
+/**
+ * Merges the Sort and the Query set by OpenSearchBuilder::search() into one request body. Both are optional.
+ */
 class SearchBuilder implements OpenSearchQuery
 {
     private Sort $sort;
     private Query $query;
 
     /**
+     * Sets the sort, replacing an earlier one.
+     *
      * @param Sort $sort
      * @return SearchBuilder
      */
@@ -20,6 +25,8 @@ class SearchBuilder implements OpenSearchQuery
     }
 
     /**
+     * Sets the query, replacing an earlier one.
+     *
      * @param Query $query
      * @return SearchBuilder
      */
@@ -30,6 +37,9 @@ class SearchBuilder implements OpenSearchQuery
     }
 
 
+    /**
+     * @return array{sort?: array<array-key, mixed>, query?: array<string, mixed>}
+     */
     public function toOpenSearchQuery(): array
     {
         return [

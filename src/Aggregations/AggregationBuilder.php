@@ -5,11 +5,22 @@ namespace Codeart\OpensearchLaravel\Aggregations;
 use Codeart\OpensearchLaravel\Exceptions\InvalidAggregationParametersException;
 use Codeart\OpensearchLaravel\Interfaces\OpenSearchQuery;
 
+/**
+ * The `aggs` part of the request body, holding one aggregation or several siblings.
+ * OpenSearchBuilder::aggregations() and Aggregation's sub-aggregations both go through it.
+ *
+ * The constructor builds every aggregation, and so every sub-aggregation level, to validate it, so errors surface
+ * when the builder is created rather than when the request is sent.
+ *
+ * @see https://opensearch.org/docs/latest/aggregations/
+ */
 class AggregationBuilder implements OpenSearchQuery
 {
     /**
-     * @param Aggregation|Aggregation[] $aggregations
-     * @throws InvalidAggregationParametersException
+     * @param Aggregation|array<array-key, Aggregation> $aggregations One aggregation, or several siblings
+     * @throws InvalidAggregationParametersException When the list is empty, has an item that isn't an Aggregation, or
+     *                                               has two aggregations with the same name at one level, at this level
+     *                                               or any sub-aggregation level
      */
     public function __construct(
         private readonly Aggregation|array $aggregations
@@ -39,6 +50,9 @@ class AggregationBuilder implements OpenSearchQuery
         }
     }
 
+    /**
+     * @return array{aggs: array<string, array<string, mixed>>}
+     */
     public function toOpenSearchQuery(): array
     {
         if(!is_array($this->aggregations)) {

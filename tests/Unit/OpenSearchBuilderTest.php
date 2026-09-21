@@ -14,9 +14,9 @@ use Codeart\OpensearchLaravel\Search\SearchQueries\BoolQuery;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Must;
 use Codeart\OpensearchLaravel\Search\SearchQueries\Types\MatchOne;
 use Codeart\OpensearchLaravel\Search\Sort;
+use Codeart\OpensearchLaravel\Tests\TestCase;
 use Mockery;
 use OpenSearch\Client;
-use PHPUnit\Framework\TestCase;
 
 class OpenSearchBuilderTest extends TestCase
 {
@@ -24,6 +24,8 @@ class OpenSearchBuilderTest extends TestCase
 
     public function setUp(): void
     {
+        parent::setUp();
+
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')
             ->andReturnUsing(fn($params) => $params);
@@ -35,13 +37,39 @@ class OpenSearchBuilderTest extends TestCase
         $this->builder = new OpenSearchBuilder($client, $model);
     }
 
-    public function testSendsTheSameRequestAsBeforeWhenNoNewOptionsAreUsed()
+    public function testTargetsThePrefixedIndex()
+    {
+        config(['opensearch-laravel.index_prefix' => 'local_']);
+
+        $this->assertSame('local_posts', $this->builder->get()['index']);
+    }
+
+    public function testSendsOnlyTheIndexAndAnEmptyBodyWhenNoOptionsAreUsed()
     {
         $this->assertSame([
             'index' => 'posts',
-            'size' => 10000,
             'body' => [],
         ], $this->builder->get());
+    }
+
+    public function testSendsSizeOnlyWhenItIsCalled()
+    {
+        $this->assertArrayNotHasKey('size', $this->builder->get());
+
+        $this->assertSame([
+            'index' => 'posts',
+            'body' => [],
+            'size' => 20,
+        ], $this->builder->size(20)->get());
+    }
+
+    public function testSendsSizeZero()
+    {
+        $this->assertSame([
+            'index' => 'posts',
+            'body' => [],
+            'size' => 0,
+        ], $this->builder->size(0)->get());
     }
 
     public function testAddsFromSourceHighlightAndTrackTotalHits()
@@ -56,9 +84,8 @@ class OpenSearchBuilderTest extends TestCase
             ->trackTotalHits()
             ->get();
 
-        $this->assertEquals([
+        $this->assertSame([
             'index' => 'posts',
-            'size' => 20,
             'body' => [
                 'query' => ['match' => ['title' => 'fox']],
                 'aggs' => [
@@ -74,6 +101,7 @@ class OpenSearchBuilderTest extends TestCase
                 ],
                 'track_total_hits' => true,
             ],
+            'size' => 20,
             'from' => 40,
         ], $parameters);
     }
@@ -93,26 +121,19 @@ class OpenSearchBuilderTest extends TestCase
         $this->assertSame(100, $parameters['body']['track_total_hits']);
     }
 
-    public function testGetThrowsWhenFromIsUsedWithoutSize()
+    public function testFromIsSentWithoutSizeWhenSizeIsNotCalled()
     {
-        $this->expectException(InvalidSearchParametersException::class);
-        $this->expectExceptionMessage('Call size() when using from(). The default size of 10000 plus from() exceeds the default result window of 10000.');
-
-        $this->builder->from(10)->get();
+        $this->assertSame([
+            'index' => 'posts',
+            'body' => [],
+            'from' => 10,
+        ], $this->builder->from(10)->get());
     }
 
-    public function testFromWorksWhenSizeIsCalledBeforeOrAfterIt()
+    public function testSizeIsSentBeforeFromWhicheverIsCalledFirst()
     {
-        $this->assertSame(10, $this->builder->from(10)->size(20)->get()['from']);
-        $this->assertSame(20, $this->builder->size(20)->from(20)->get()['from']);
-    }
-
-    public function testFromZeroDoesNotRequireSize()
-    {
-        $parameters = $this->builder->from(0)->get();
-
-        $this->assertSame(0, $parameters['from']);
-        $this->assertSame(10000, $parameters['size']);
+        $this->assertSame(['index', 'body', 'size', 'from'], array_keys($this->builder->from(10)->size(20)->get()));
+        $this->assertSame(['index', 'body', 'size', 'from'], array_keys($this->builder->size(20)->from(20)->get()));
     }
 
     public function testSearchAcceptsAQueryAndASortInAnyOrder()

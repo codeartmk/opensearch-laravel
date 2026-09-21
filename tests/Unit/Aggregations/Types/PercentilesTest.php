@@ -2,16 +2,16 @@
 
 namespace Codeart\OpensearchLaravel\Tests\Unit\Aggregations\Types;
 
-use Codeart\OpensearchLaravel\Aggregations\Types\Percentile;
+use Codeart\OpensearchLaravel\Aggregations\Types\Percentiles;
 use PHPUnit\Framework\TestCase;
 
-class PercentileTest extends TestCase
+class PercentilesTest extends TestCase
 {
     public function testBuildsAPercentilesAggregation()
     {
         $this->assertEquals([
             'percentiles' => ['field' => 'price'],
-        ], Percentile::make('price')->toOpenSearchQuery());
+        ], Percentiles::make('price')->toOpenSearchQuery());
     }
 
     public function testBuildsAPercentilesAggregationWithPercents()
@@ -21,6 +21,6 @@ class PercentileTest extends TestCase
                 'field' => 'price',
                 'percents' => [50, 95, 99],
             ],
-        ], Percentile::make('price', [50, 95, 99])->toOpenSearchQuery());
+        ], Percentiles::make('price', [50, 95, 99])->toOpenSearchQuery());
     }
 }

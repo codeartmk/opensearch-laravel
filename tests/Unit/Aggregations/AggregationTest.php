@@ -3,8 +3,8 @@
 namespace Codeart\OpensearchLaravel\Tests\Unit\Aggregations;
 
 use Codeart\OpensearchLaravel\Aggregations\Aggregation;
-use Codeart\OpensearchLaravel\Aggregations\Types\Average;
-use Codeart\OpensearchLaravel\Aggregations\Types\Maximum;
+use Codeart\OpensearchLaravel\Aggregations\Types\Avg;
+use Codeart\OpensearchLaravel\Aggregations\Types\Max;
 use Codeart\OpensearchLaravel\Aggregations\Types\Terms;
 use PHPUnit\Framework\TestCase;
 
@@ -12,7 +12,7 @@ class AggregationTest extends TestCase
 {
     public function testBuildsAnAggregationWithoutSubAggregations()
     {
-        $aggregation = Aggregation::make('average_price', Average::make('price'));
+        $aggregation = Aggregation::make('average_price', Avg::make('price'));
 
         $this->assertEquals([
             'average_price' => [
@@ -26,7 +26,7 @@ class AggregationTest extends TestCase
         $aggregation = Aggregation::make(
             name: 'categories',
             aggregationType: Terms::make('category'),
-            aggregation: Aggregation::make('average_price', Average::make('price'))
+            aggregation: Aggregation::make('average_price', Avg::make('price'))
         );
 
         $this->assertEquals([
@@ -47,8 +47,8 @@ class AggregationTest extends TestCase
             name: 'categories',
             aggregationType: Terms::make('category'),
             aggregation: [
-                Aggregation::make('average_price', Average::make('price')),
-                Aggregation::make('max_price', Maximum::make('price')),
+                Aggregation::make('average_price', Avg::make('price')),
+                Aggregation::make('max_price', Max::make('price')),
             ]
         );
 
@@ -69,7 +69,7 @@ class AggregationTest extends TestCase
 
     public function testIgnoresAnEmptySubAggregationList()
     {
-        $aggregation = Aggregation::make('average_price', Average::make('price'), []);
+        $aggregation = Aggregation::make('average_price', Avg::make('price'), []);
 
         $this->assertEquals([
             'average_price' => [
